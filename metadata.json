@@ -1,0 +1,6 @@
+{
+  "name": "ExamHub",
+  "description": "Production-grade Student Examination Management System for creating exams, conducting timed assessments, and automated evaluation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
