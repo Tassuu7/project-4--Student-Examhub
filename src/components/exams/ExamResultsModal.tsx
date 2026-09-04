@@ -37,6 +37,7 @@ export const ExamResultsModal: React.FC<ExamResultsModalProps> = ({
   const [search, setSearch] = useState('');
   const [selectedIntegrity, setSelectedIntegrity] = useState<IntegritySummary | null>(null);
   const [loadingIntegrity, setLoadingIntegrity] = useState(false);
+  const [loadingScorecardId, setLoadingScorecardId] = useState<string | null>(null);
 
   const { showToast } = useToast();
 
@@ -69,6 +70,18 @@ export const ExamResultsModal: React.FC<ExamResultsModalProps> = ({
       showToast(err instanceof Error ? err.message : 'Failed to load proctoring logs', 'error');
     } finally {
       setLoadingIntegrity(false);
+    }
+  };
+
+  const handleOpenScorecard = async (attemptId: string) => {
+    try {
+      setLoadingScorecardId(attemptId);
+      const fullResult = await examService.getAttemptResult(attemptId);
+      onViewScorecard(fullResult);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load full scorecard', 'error');
+    } finally {
+      setLoadingScorecardId(null);
     }
   };
 
@@ -220,10 +233,17 @@ export const ExamResultsModal: React.FC<ExamResultsModalProps> = ({
                             <ShieldAlert className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => onViewScorecard(r)}
-                            className="px-2.5 py-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-300 font-medium text-[11px] flex items-center gap-1"
+                            onClick={() => handleOpenScorecard(r.attempt_id)}
+                            disabled={loadingScorecardId === r.attempt_id}
+                            className="px-2.5 py-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-300 font-medium text-[11px] flex items-center gap-1 transition-colors disabled:opacity-50"
                           >
-                            Scorecard <ExternalLink className="w-3 h-3" />
+                            {loadingScorecardId === r.attempt_id ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <>
+                                Scorecard <ExternalLink className="w-3 h-3" />
+                              </>
+                            )}
                           </button>
                         </div>
                       </td>

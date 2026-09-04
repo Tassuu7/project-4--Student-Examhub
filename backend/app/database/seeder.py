@@ -6,6 +6,7 @@ No real data; 100% synthetic educational demonstration fixtures.
 
 import uuid
 import datetime
+import hashlib
 from backend.app.database.connection import get_db_connection, transaction
 from backend.app.core.security import hash_password
 from backend.app.core.constants import UserRole, ExamStatus, AttemptStatus, QuestionDifficulty
@@ -24,13 +25,16 @@ def seed_database(force_reseed: bool = False):
 
     if force_reseed and user_count > 0:
         tables = [
-            "audit_logs", "notifications", "results", "student_answers",
-            "exam_attempts", "exam_assignments", "exam_questions",
-            "exams", "questions", "subject_teachers", "subjects",
-            "students", "teachers", "users"
+            "audit_logs", "notifications", "certificates", "student_feedbacks",
+            "results", "student_answers", "exam_attempts", "exam_assignments",
+            "exam_questions", "exams", "questions", "subject_teachers",
+            "subjects", "students", "teachers", "users"
         ]
         for t in tables:
-            cursor.execute(f"DELETE FROM {t};")
+            try:
+                cursor.execute(f"DELETE FROM {t};")
+            except Exception:
+                pass
 
     logger.info("Starting synthetic database population...")
     now = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -38,6 +42,7 @@ def seed_database(force_reseed: bool = False):
     two_days_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=2)).isoformat()
     tomorrow = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)).isoformat()
     next_week = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)).isoformat()
+    next_year = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365)).isoformat()
     
     default_pass = hash_password("password123")
 
@@ -384,7 +389,7 @@ def seed_database(force_reseed: bool = False):
                 (str(uuid.uuid4()), exam2_id, q["id"], idx + 1, q["marks"])
             )
 
-        # Exam 3: Scheduled Database Systems Exam (Upcoming)
+        # Exam 3: DBMS & SQL Proficiency Examination (DS202)
         exam3_id = str(uuid.uuid4())
         cursor.execute(
             """INSERT INTO exams (id, name, subject_id, teacher_id, description, duration_minutes, total_marks,
@@ -399,19 +404,27 @@ def seed_database(force_reseed: bool = False):
                 45,
                 6.0,
                 40.0,
-                tomorrow,
+                two_days_ago,
                 next_week,
                 "Please review SQL aggregation and joins prior to beginning.",
-                ExamStatus.SCHEDULED.value,
-                now,
+                ExamStatus.ACTIVE.value,
+                two_days_ago,
                 now
             )
         )
+        db_questions = [q for q in question_records if q["sub_code"] == "DS202"]
+        for idx, q in enumerate(db_questions):
+            cursor.execute(
+                """INSERT INTO exam_questions (id, exam_id, question_id, order_index, marks_allocated)
+                   VALUES (?, ?, ?, ?, ?);""",
+                (str(uuid.uuid4()), exam3_id, q["id"], idx + 1, q["marks"])
+            )
+
         for s in student_records:
             cursor.execute(
                 """INSERT INTO exam_assignments (id, exam_id, student_id, assigned_at, can_attempt, attempts_allowed)
                    VALUES (?, ?, ?, ?, 1, 1);""",
-                (str(uuid.uuid4()), exam3_id, s["student_id"], now)
+                (str(uuid.uuid4()), exam3_id, s["student_id"], two_days_ago)
             )
 
         # 7. SEED COMPLETED ATTEMPTS, RESULTS, CERTIFICATES & FEEDBACK FOR STUDENTS
@@ -446,7 +459,7 @@ def seed_database(force_reseed: bool = False):
 
             # Insert answers for questions
             for q_idx, q in enumerate(ds_questions):
-                sel = q["ans"] if q_idx < cor else "B"
+                sel = q["ans"] if q_idx < cor else ("B" if q["ans"] != "B" else "A")
                 is_cor = 1 if sel == q["ans"] else 0
                 mk = q["marks"] if is_cor else 0.0
                 cursor.execute(
@@ -470,7 +483,7 @@ def seed_database(force_reseed: bool = False):
             cursor.execute(
                 """INSERT INTO student_feedbacks (id, exam_id, student_id, teacher_id, attempt_id, feedback_text, rating, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);""",
-                (fb_id, exam2_id, s["student_id"], teacher_records[0]["teacher_id"], att_id, fb_text, fb_rating, yesterday, yesterday)
+                (fb_id, exam2_id, s["student_id"], teacher_records[1]["teacher_id"], att_id, fb_text, fb_rating, yesterday, yesterday)
             )
 
             # Insert Certificate if passed with honors
@@ -478,10 +491,138 @@ def seed_database(force_reseed: bool = False):
                 cert_id = str(uuid.uuid4())
                 cursor.execute(
                     """INSERT INTO certificates (id, certificate_code, attempt_id, exam_id, student_id, title, issue_date, expiry_date, verification_hash, status, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?);""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
                     (cert_id, ccode, att_id, exam2_id, s["student_id"],
-                     f"Certificate of Excellence in Data Structures & Algorithms",
-                     yesterday, next_week, f"SHA256-{ccode}-{s['student_id'][:8]}", yesterday)
+                     "Data Structures Fundamentals Certification", yesterday, next_year,
+                     hashlib.sha256(f"{ccode}:{s['student_id']}".encode()).hexdigest(),
+                     "active", yesterday)
+                )
+
+        # Student performances across Exam 3 (DBMS & SQL Proficiency)
+        db_perf_data = [
+            # (student_index, correct_count, score, percentage, grade, pass_fail, rank, feedback_text, rating, has_cert, cert_code)
+            (0, 4, 6.0, 100.0, "A+", "PASS", 1, "Flawless score on SQL queries, relational algebra, and ACID transaction semantics!", 5, True, "CERT-2026-DB-001"),
+            (5, 4, 6.0, 100.0, "A+", "PASS", 1, "Exemplary understanding of SQL subqueries, join mechanics, and BCNF normalization.", 5, True, "CERT-2026-DB-002"),
+            (2, 3, 5.0, 83.3, "A", "PASS", 3, "Strong command of transactional properties and indexing strategies. Excellent performance.", 4, False, None),
+            (6, 3, 5.0, 83.3, "A", "PASS", 3, "Very good work on complex join operations. Continue strengthening query optimization.", 4, False, None),
+            (1, 2, 4.0, 66.7, "B", "PASS", 5, "Good foundational understanding. Review group aggregations and having clauses.", 4, False, None),
+            (3, 2, 4.0, 66.7, "B", "PASS", 5, "Solid baseline achieved. More practice with foreign key constraints recommended.", 3, False, None),
+            (4, 1, 2.0, 33.3, "F", "FAIL", 7, "Struggled with SQL joins and normalization forms. Recommended for remedial tutoring session.", 2, False, None),
+        ]
+
+        for s_idx, cor, score, pct, grd, res, rnk, fb_text, fb_rating, has_cert, ccode in db_perf_data:
+            if s_idx >= len(student_records):
+                continue
+            s = student_records[s_idx]
+            att_id = str(uuid.uuid4())
+            
+            cursor.execute(
+                """INSERT INTO exam_attempts (id, exam_id, student_id, start_time, end_time, time_remaining_seconds,
+                                             status, total_score, percentage, grade, result, evaluated_at, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (att_id, exam3_id, s["student_id"], two_days_ago, yesterday, AttemptStatus.EVALUATED.value,
+                 score, pct, grd, res, yesterday, two_days_ago, yesterday)
+            )
+
+            # Insert answers for questions
+            for q_idx, q in enumerate(db_questions):
+                sel = q["ans"] if q_idx < cor else ("B" if q["ans"] != "B" else "A")
+                is_cor = 1 if sel == q["ans"] else 0
+                mk = q["marks"] if is_cor else 0.0
+                cursor.execute(
+                    """INSERT INTO student_answers (id, attempt_id, question_id, selected_option, is_correct, marks_obtained, is_marked_for_review, saved_at)
+                       VALUES (?, ?, ?, ?, ?, ?, 0, ?);""",
+                    (str(uuid.uuid4()), att_id, q["id"], sel, is_cor, mk, yesterday)
+                )
+
+            # Insert Result record
+            res_id = str(uuid.uuid4())
+            cursor.execute(
+                """INSERT INTO results (id, attempt_id, exam_id, student_id, total_questions, correct_count, wrong_count,
+                                       unanswered_count, total_marks, obtained_marks, percentage, grade, pass_fail, rank, generated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 0, 6.0, ?, ?, ?, ?, ?, ?);""",
+                (res_id, att_id, exam3_id, s["student_id"], len(db_questions),
+                 cor, len(db_questions) - cor, score, pct, grd, res, rnk, yesterday)
+            )
+
+            # Insert Teacher Feedback
+            fb_id = str(uuid.uuid4())
+            cursor.execute(
+                """INSERT INTO student_feedbacks (id, exam_id, student_id, teacher_id, attempt_id, feedback_text, rating, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (fb_id, exam3_id, s["student_id"], teacher_records[2]["teacher_id"], att_id, fb_text, fb_rating, yesterday, yesterday)
+            )
+
+            # Insert Certificate if passed with honors
+            if has_cert and ccode:
+                cert_id = str(uuid.uuid4())
+                cursor.execute(
+                    """INSERT INTO certificates (id, certificate_code, attempt_id, exam_id, student_id, title, issue_date, expiry_date, verification_hash, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                    (cert_id, ccode, att_id, exam3_id, s["student_id"],
+                     "DBMS & SQL Proficiency Certification", yesterday, next_year,
+                     hashlib.sha256(f"{ccode}:{s['student_id']}".encode()).hexdigest(),
+                     "active", yesterday)
+                )
+
+        # Student performances across Exam 1 (Python Programming)
+        py_perf_data = [
+            (0, 7, 13.0, 86.7, "A", "PASS", 2, "Great mastery of Python data structures, list comprehensions, and OOP patterns.", 5, True, "CERT-2026-PY-001"),
+            (5, 8, 15.0, 100.0, "A+", "PASS", 1, "Perfect score across all advanced Python internals, decorators, and memory management.", 5, True, "CERT-2026-PY-002"),
+            (2, 6, 11.0, 73.3, "B", "PASS", 3, "Solid command of syntax and standard libraries. Keep practicing context managers.", 4, False, None),
+            (1, 5, 9.0, 60.0, "C", "PASS", 4, "Good progress on functions and dictionary methods.", 3, False, None),
+            (4, 3, 5.0, 33.3, "F", "FAIL", 5, "Needs extra practice on regular expressions and list comprehensions.", 2, False, None),
+        ]
+
+        for s_idx, cor, score, pct, grd, res, rnk, fb_text, fb_rating, has_cert, ccode in py_perf_data:
+            if s_idx >= len(student_records):
+                continue
+            s = student_records[s_idx]
+            att_id = str(uuid.uuid4())
+            
+            cursor.execute(
+                """INSERT INTO exam_attempts (id, exam_id, student_id, start_time, end_time, time_remaining_seconds,
+                                             status, total_score, percentage, grade, result, evaluated_at, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (att_id, exam1_id, s["student_id"], two_days_ago, yesterday, AttemptStatus.EVALUATED.value,
+                 score, pct, grd, res, yesterday, two_days_ago, yesterday)
+            )
+
+            for q_idx, q in enumerate(py_questions[:8]):
+                sel = q["ans"] if q_idx < cor else ("B" if q["ans"] != "B" else "A")
+                is_cor = 1 if sel == q["ans"] else 0
+                mk = q["marks"] if is_cor else 0.0
+                cursor.execute(
+                    """INSERT INTO student_answers (id, attempt_id, question_id, selected_option, is_correct, marks_obtained, is_marked_for_review, saved_at)
+                       VALUES (?, ?, ?, ?, ?, ?, 0, ?);""",
+                    (str(uuid.uuid4()), att_id, q["id"], sel, is_cor, mk, yesterday)
+                )
+
+            res_id = str(uuid.uuid4())
+            cursor.execute(
+                """INSERT INTO results (id, attempt_id, exam_id, student_id, total_questions, correct_count, wrong_count,
+                                       unanswered_count, total_marks, obtained_marks, percentage, grade, pass_fail, rank, generated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 0, 15.0, ?, ?, ?, ?, ?, ?);""",
+                (res_id, att_id, exam1_id, s["student_id"], 8,
+                 cor, 8 - cor, score, pct, grd, res, rnk, yesterday)
+            )
+
+            fb_id = str(uuid.uuid4())
+            cursor.execute(
+                """INSERT INTO student_feedbacks (id, exam_id, student_id, teacher_id, attempt_id, feedback_text, rating, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (fb_id, exam1_id, s["student_id"], teacher_records[0]["teacher_id"], att_id, fb_text, fb_rating, yesterday, yesterday)
+            )
+
+            if has_cert and ccode:
+                cert_id = str(uuid.uuid4())
+                cursor.execute(
+                    """INSERT INTO certificates (id, certificate_code, attempt_id, exam_id, student_id, title, issue_date, expiry_date, verification_hash, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                    (cert_id, ccode, att_id, exam1_id, s["student_id"],
+                     "Python Programming Midterm Certification", yesterday, next_year,
+                     hashlib.sha256(f"{ccode}:{s['student_id']}".encode()).hexdigest(),
+                     "active", yesterday)
                 )
 
         # 8. NOTIFICATIONS

@@ -29,14 +29,13 @@ interface NavProps {
 }
 
 export const UnifiedSystemNavigation: React.FC<NavProps> = ({ currentTab, onSelectTab, userRole }) => {
-  // 1. Principal / Admin: Executive Overview, Exam Oversight, Student Monitoring, Feedback, Analytics, Certificates
+  // 1. Principal / Admin: Executive Overview, Exam Oversight, Student Monitoring, Feedback, Analytics
   const principalTabs = [
     { id: 'principal_dashboard', label: 'Executive Overview', icon: LayoutDashboard },
     { id: 'exams', label: 'Examinations Oversight', icon: BookOpen },
     { id: 'student_monitoring', label: 'Student Performance', icon: Users },
     { id: 'feedback', label: 'Teacher Feedback', icon: MessageSquare },
     { id: 'analytics', label: 'Analytics Lab', icon: BarChart3 },
-    { id: 'certificates', label: 'Certificates', icon: Award },
   ];
 
   // 2. Teacher: Examinations, Question Bank, Student Monitoring, Student Feedback, Live Proctoring, Certificates

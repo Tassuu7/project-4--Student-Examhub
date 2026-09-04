@@ -54,8 +54,10 @@ function ExamHubContent() {
 
   // Ensure role has an appropriate initial tab
   React.useEffect(() => {
-    if (user?.role === 'admin' && activeTab === 'exams') {
+    if (user?.role === 'admin') {
       setActiveTab('principal_dashboard');
+    } else {
+      setActiveTab('exams');
     }
   }, [user?.role]);
 
@@ -72,9 +74,6 @@ function ExamHubContent() {
   // Active scorecard view mode
   const [activeScorecard, setActiveScorecard] = useState<ExamResult | null>(null);
   const [loadingScorecard, setLoadingScorecard] = useState(false);
-
-  // Quick demo switch loading
-  const [switchingRole, setSwitchingRole] = useState(false);
 
   if (isLoading) {
     return (
@@ -129,26 +128,6 @@ function ExamHubContent() {
     }
   };
 
-  const handleDemoSwitch = async (username: string) => {
-    try {
-      setSwitchingRole(true);
-      await login(username, 'password123');
-      // Reset view state
-      setActiveScorecard(null);
-      setActiveAttemptExamId(null);
-      setSelectedExamForResults(null);
-      if (username === 'principal_sharma' || username === 'admin') {
-        setActiveTab('principal_dashboard');
-      } else {
-        setActiveTab('exams');
-      }
-    } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Switch failed', 'error');
-    } finally {
-      setSwitchingRole(false);
-    }
-  };
-
   const isStudent = user.role === 'student';
   const isTeacher = user.role === 'teacher';
   const isPrincipal = user.role === 'admin';
@@ -191,50 +170,10 @@ function ExamHubContent() {
               )}
             </div>
 
-            {/* Right Controls: Role Switcher & User Profile */}
+            {/* Right Controls: User Profile & Actions */}
             <div className="flex items-center gap-3">
-              {/* Quick Persona Switcher for easy demo grading */}
-              <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded-xl bg-stone-50 dark:bg-zinc-800/80 border border-stone-200 dark:border-zinc-700/60 text-xs">
-                <span className="text-[10px] text-stone-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <ArrowRightLeft className="w-3 h-3" /> Demo:
-                </span>
-                <button
-                  onClick={() => handleDemoSwitch('principal_sharma')}
-                  disabled={switchingRole || user.username === 'principal_sharma' || (isPrincipal && user.username === 'admin')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                    isPrincipal
-                      ? 'bg-purple-600 text-white shadow-xs'
-                      : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
-                  }`}
-                >
-                  Principal (Dr. Sharma)
-                </button>
-                <button
-                  onClick={() => handleDemoSwitch('teacher_smith')}
-                  disabled={switchingRole || user.username === 'teacher_smith'}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                    user.username === 'teacher_smith'
-                      ? 'bg-amber-600 text-white shadow-xs'
-                      : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
-                  }`}
-                >
-                  Teacher (Prof. Smith)
-                </button>
-                <button
-                  onClick={() => handleDemoSwitch('student_alice')}
-                  disabled={switchingRole || user.username === 'student_alice'}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                    user.username === 'student_alice'
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
-                  }`}
-                >
-                  Student (Alice)
-                </button>
-              </div>
-
               {/* User Avatar & Role */}
-              <div className="flex items-center gap-2.5 pl-2 border-l border-stone-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-stone-200 dark:bg-zinc-800 text-stone-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs">
                   {user.full_name?.charAt(0) || user.username.charAt(0).toUpperCase()}
                 </div>
@@ -291,7 +230,7 @@ function ExamHubContent() {
             )}
             {activeTab === 'results' && (
               <StudentResultsList
-                onViewScorecard={(result) => setActiveScorecard(result)}
+                onViewScorecard={(attemptId) => handleStudentViewResult(attemptId)}
               />
             )}
             {activeTab === 'feedback' && (
@@ -310,7 +249,6 @@ function ExamHubContent() {
               <PrincipalDashboard
                 onNavigateToExams={() => setActiveTab('exams')}
                 onNavigateToMonitoring={() => setActiveTab('student_monitoring')}
-                onNavigateToCertificates={() => setActiveTab('certificates')}
               />
             )}
             {activeTab === 'exams' && (
@@ -335,9 +273,6 @@ function ExamHubContent() {
             )}
             {activeTab === 'analytics' && (
               <AnalyticsDashboard />
-            )}
-            {activeTab === 'certificates' && (
-              <StudentCertificatesTab />
             )}
           </div>
         )}

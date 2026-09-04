@@ -25,13 +25,11 @@ import {
 interface PrincipalDashboardProps {
   onNavigateToExams?: () => void;
   onNavigateToMonitoring?: () => void;
-  onNavigateToCertificates?: () => void;
 }
 
 export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
   onNavigateToExams,
   onNavigateToMonitoring,
-  onNavigateToCertificates,
 }) => {
   const [selectedDept, setSelectedDept] = useState('ALL');
 
@@ -50,7 +48,7 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
             Welcome, Dr. Ramesh Sharma
           </h1>
           <p className="text-xs text-stone-300 max-w-2xl mt-1">
-            Institutional console for curriculum monitoring, faculty test oversight, school-wide pass rates, and academic certifications.
+            Institutional console for curriculum monitoring, faculty test oversight, school-wide pass rates, and academic outcomes.
           </p>
         </div>
 
@@ -124,14 +122,14 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
 
         <div className="p-4 rounded-xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs">
           <div className="flex items-center justify-between text-xs text-stone-500 dark:text-zinc-400">
-            <span>Certificates Issued</span>
-            <Award className="w-4 h-4 text-amber-500" />
+            <span>Faculty & Teachers</span>
+            <Users className="w-4 h-4 text-amber-500" />
           </div>
           <p className="text-2xl font-extrabold text-amber-500 mt-2">
-            2
+            3
           </p>
           <span className="text-[10px] text-stone-400 mt-1 inline-block">
-            Verified Credentials
+            Active Instructors
           </span>
         </div>
       </div>
@@ -363,22 +361,22 @@ export const PrincipalDashboard: React.FC<PrincipalDashboardProps> = ({
             </div>
           </div>
 
-          {/* Quick Registry Link */}
+          {/* Quick Performance Link */}
           <div className="p-5 rounded-2xl border border-stone-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs flex items-center justify-between">
             <div>
               <strong className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
-                Issued Credentials Registry
+                Institutional Cohort Analytics
               </strong>
               <p className="text-[11px] text-stone-500 mt-0.5">
-                2 digitally verifiable certificates active
+                Real-time difficulty analysis & student interventions
               </p>
             </div>
-            {onNavigateToCertificates && (
+            {onNavigateToMonitoring && (
               <button
-                onClick={onNavigateToCertificates}
+                onClick={onNavigateToMonitoring}
                 className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-xs transition-colors"
               >
-                View Registry
+                View Performance
               </button>
             )}
           </div>

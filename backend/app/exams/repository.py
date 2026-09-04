@@ -461,9 +461,12 @@ class ExamRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            """SELECT r.*, st.student_id_code as student_roll_number, u.full_name as student_name,
+            """SELECT r.*, e.name as exam_name, s.code as subject_code, s.name as subject_name,
+                      st.student_id_code as student_roll_number, u.full_name as student_name,
                       att.start_time, att.end_time
                FROM results r
+               JOIN exams e ON r.exam_id = e.id
+               JOIN subjects s ON e.subject_id = s.id
                JOIN students st ON r.student_id = st.id
                JOIN users u ON st.user_id = u.id
                JOIN exam_attempts att ON r.attempt_id = att.id

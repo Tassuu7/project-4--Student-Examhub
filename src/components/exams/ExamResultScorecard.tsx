@@ -31,7 +31,9 @@ export const ExamResultScorecard: React.FC<ExamResultScorecardProps> = ({
 
   const isPass = result.pass_fail === 'PASS';
 
-  const filteredItems = result.review_items.filter((item) => {
+  const reviewItems = result?.review_items || [];
+
+  const filteredItems = reviewItems.filter((item) => {
     if (filterDifficulty === 'all') return true;
     if (filterDifficulty === 'correct') return item.is_correct;
     if (filterDifficulty === 'wrong') return !item.is_correct && item.selected_option !== null;
@@ -187,21 +189,31 @@ export const ExamResultScorecard: React.FC<ExamResultScorecardProps> = ({
 
         {/* Questions Accordion / List */}
         <div className="space-y-4 mt-6">
-          {filteredItems.map((item, idx) => {
-            const isExpanded = expandedIndex === idx;
-            return (
-              <div
-                key={item.question_id}
-                className={`rounded-2xl border transition-all ${
-                  item.is_correct
-                    ? 'border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10'
-                    : item.selected_option
-                    ? 'border-rose-200/80 dark:border-rose-900/40 bg-rose-50/20 dark:bg-rose-950/10'
-                    : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40'
-                }`}
-              >
+          {filteredItems.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <BookOpen className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+              <p className="text-xs font-semibold">
+                {reviewItems.length === 0
+                  ? 'Detailed per-question breakdown is not available for this record.'
+                  : 'No questions matching this filter category.'}
+              </p>
+            </div>
+          ) : (
+            filteredItems.map((item, idx) => {
+              const isExpanded = expandedIndex === idx;
+              return (
                 <div
-                  onClick={() => setExpandedIndex(isExpanded ? null : idx)}
+                  key={item.question_id}
+                  className={`rounded-2xl border transition-all ${
+                    item.is_correct
+                      ? 'border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10'
+                      : item.selected_option
+                      ? 'border-rose-200/80 dark:border-rose-900/40 bg-rose-50/20 dark:bg-rose-950/10'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/40'
+                  }`}
+                >
+                  <div
+                    onClick={() => setExpandedIndex(isExpanded ? null : idx)}
                   className="p-4 sm:p-5 flex items-start justify-between gap-4 cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
@@ -294,7 +306,7 @@ export const ExamResultScorecard: React.FC<ExamResultScorecardProps> = ({
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
       </div>
     </div>
