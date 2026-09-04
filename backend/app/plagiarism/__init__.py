@@ -1,0 +1,3 @@
+"""
+ExamHub Plagiarism Detection Package
+"""
