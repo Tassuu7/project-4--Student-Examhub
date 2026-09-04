@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Subject } from '../../types/subject';
 import { Question } from '../../types/question';
+import { Exam } from '../../types/exam';
 import { StudentListItem, examService } from '../../services/examService';
 import { SubjectService } from '../../services/subjectService';
 import { QuestionService } from '../../services/questionService';
@@ -27,12 +28,14 @@ interface ExamFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  examToEdit?: Exam | null;
 }
 
 export const ExamFormModal: React.FC<ExamFormModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  examToEdit,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'questions' | 'students'>('details');
 
@@ -71,25 +74,63 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // Set default dates
     const now = new Date();
     const nextWeek = new Date();
     nextWeek.setDate(now.getDate() + 7);
 
-    setStartDate(now.toISOString().slice(0, 16));
-    setEndDate(nextWeek.toISOString().slice(0, 16));
+    if (examToEdit) {
+      setName(examToEdit.name || '');
+      setSubjectId(examToEdit.subject_id || '');
+      setDescription(examToEdit.description || '');
+      setDurationMinutes(examToEdit.duration_minutes || 30);
+      setPassingPercentage(examToEdit.passing_percentage || 50);
+      setStartDate(
+        examToEdit.start_date
+          ? new Date(examToEdit.start_date).toISOString().slice(0, 16)
+          : now.toISOString().slice(0, 16)
+      );
+      setEndDate(
+        examToEdit.end_date
+          ? new Date(examToEdit.end_date).toISOString().slice(0, 16)
+          : nextWeek.toISOString().slice(0, 16)
+      );
+      setInstructions(
+        examToEdit.instructions ||
+          '1. Answer all questions.\n2. Do not switch browser tabs.\n3. Exam will auto-submit when the timer expires.'
+      );
+    } else {
+      setName('');
+      setDescription('');
+      setDurationMinutes(30);
+      setPassingPercentage(50);
+      setStartDate(now.toISOString().slice(0, 16));
+      setEndDate(nextWeek.toISOString().slice(0, 16));
+      setInstructions(
+        '1. Answer all questions.\n2. Do not switch browser tabs.\n3. Exam will auto-submit when the timer expires.'
+      );
+      setSelectedQuestionIds([]);
+      setSelectedStudentIds([]);
+    }
 
     const loadMetadata = async () => {
       try {
         setLoading(true);
-        const [subs, stus] = await Promise.all([
+        const [subs, stus, details] = await Promise.all([
           SubjectService.listSubjects(),
           examService.listAvailableStudents(),
+          examToEdit ? examService.getExamDetails(examToEdit.id).catch(() => null) : Promise.resolve(null),
         ]);
         setSubjects(subs.items || []);
         setAvailableStudents(stus.items || []);
 
-        if (subs.items?.length > 0 && !subjectId) {
+        if (examToEdit && details) {
+          if (details.questions && Array.isArray(details.questions)) {
+            setSelectedQuestionIds(details.questions.map((q: any) => q.question_id));
+          }
+          if (details.assigned_students && Array.isArray(details.assigned_students)) {
+            setSelectedStudentIds(details.assigned_students.map((s: any) => s.student_id));
+          }
+        } else if (subs.items?.length > 0 && !subjectId) {
           setSubjectId(subs.items[0].id);
         }
       } catch (err: unknown) {
@@ -100,7 +141,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
     };
 
     loadMetadata();
-  }, [isOpen]);
+  }, [isOpen, examToEdit]);
 
   // Load questions when subject changes
   useEffect(() => {
@@ -167,7 +208,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
 
     try {
       setSubmitting(true);
-      await examService.createExam({
+      const payload = {
         name: name.trim(),
         subject_id: subjectId,
         description: description.trim() || undefined,
@@ -178,13 +219,20 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
         instructions: instructions.trim() || undefined,
         question_ids: selectedQuestionIds,
         student_ids: selectedStudentIds,
-      });
+      };
 
-      showToast('Examination created successfully!', 'success');
+      if (examToEdit) {
+        await examService.updateExam(examToEdit.id, payload);
+        showToast('Examination updated successfully!', 'success');
+      } else {
+        await examService.createExam(payload);
+        showToast('Examination created successfully!', 'success');
+      }
+
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Failed to create examination', 'error');
+      showToast(err instanceof Error ? err.message : 'Failed to save examination', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -203,10 +251,12 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div>
             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-              Create New Examination
+              {examToEdit ? `Edit Examination: ${examToEdit.name}` : 'Create New Examination'}
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Set details, assign questions from the bank, and enroll students.
+              {examToEdit
+                ? 'Update exam settings, questions, and assigned students.'
+                : 'Set details, assign questions from the bank, and enroll students.'}
             </p>
           </div>
           <button
@@ -529,7 +579,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
             >
               Cancel
             </button>
-            {activeTab !== 'students' ? (
+            {activeTab !== 'students' && (
               <button
                 type="button"
                 onClick={() =>
@@ -539,17 +589,16 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
               >
                 Next Step →
               </button>
-            ) : (
-              <button
-                type="submit"
-                form="exam-create-form"
-                disabled={submitting}
-                className="px-5 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors flex items-center gap-1.5"
-              >
-                {submitting && <LoadingSpinner size="sm" />}
-                Publish Examination
-              </button>
             )}
+            <button
+              type="submit"
+              form="exam-create-form"
+              disabled={submitting}
+              className="px-5 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition-colors flex items-center gap-1.5"
+            >
+              {submitting && <LoadingSpinner size="sm" />}
+              {examToEdit ? 'Save Changes' : 'Publish Examination'}
+            </button>
           </div>
         </div>
       </div>

@@ -33,7 +33,9 @@ export type ExamHubNavigationTab =
   | 'curriculum'
   | 'reports'
   | 'tenancy'
-  | 'student_review';
+  | 'student_review'
+  | 'audit'
+  | 'verify';
 
 interface NavProps {
   currentTab: ExamHubNavigationTab;
@@ -57,14 +59,16 @@ export const UnifiedSystemNavigation: React.FC<NavProps> = ({ currentTab, onSele
     { id: 'scheduling', label: 'Timetable Grid', icon: Calendar },
     { id: 'curriculum', label: 'Curriculum Blueprint', icon: BookOpen },
     { id: 'reports', label: 'SIS Transcripts', icon: FileText },
-    { id: 'tenancy', label: 'Tenant Admin', icon: Building2 }
+    { id: 'tenancy', label: 'Tenant Admin', icon: Building2 },
+    ...(userRole === 'admin' ? [{ id: 'audit', label: 'Audit Trail', icon: ShieldCheck }] : [])
   ];
 
   const studentTabs = [
     { id: 'exams', label: 'My Examinations', icon: BookOpen },
     { id: 'adaptive_cat', label: 'Adaptive Testing', icon: BrainCircuit },
     { id: 'student_review', label: 'Post-Exam Review', icon: FileText },
-    { id: 'certificates', label: 'My Certificates', icon: Award }
+    { id: 'certificates', label: 'My Certificates', icon: Award },
+    { id: 'verify', label: 'Verify Code', icon: FileSearch }
   ];
 
   const tabs = userRole === 'student' ? studentTabs : adminTeacherTabs;

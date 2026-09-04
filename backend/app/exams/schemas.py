@@ -3,11 +3,12 @@ ExamHub - Exam System Pydantic Schemas & DTOs
 """
 
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from backend.app.core.constants import ExamStatus, AttemptStatus, EvaluationResult, CorrectOption, QuestionDifficulty
 
 class ExamBase(BaseModel):
-    name: str = Field(..., min_length=2, max_length=200)
+    name: Optional[str] = Field(None, min_length=2, max_length=200)
+    title: Optional[str] = None
     subject_id: str
     description: Optional[str] = None
     duration_minutes: int = Field(..., ge=1, le=480)
@@ -16,12 +17,24 @@ class ExamBase(BaseModel):
     end_date: str
     instructions: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_name_title(cls, values):
+        if isinstance(values, dict):
+            if not values.get("name") and values.get("title"):
+                values["name"] = values["title"]
+            elif not values.get("title") and values.get("name"):
+                values["title"] = values["name"]
+        return values
+
 class ExamCreateRequest(ExamBase):
+    status: Optional[ExamStatus] = Field(default=ExamStatus.ACTIVE)
     question_ids: Optional[List[str]] = Field(default_factory=list)
     student_ids: Optional[List[str]] = Field(default_factory=list)
 
 class ExamUpdateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=200)
+    title: Optional[str] = None
     subject_id: Optional[str] = None
     description: Optional[str] = None
     duration_minutes: Optional[int] = Field(None, ge=1, le=480)
@@ -30,6 +43,18 @@ class ExamUpdateRequest(BaseModel):
     end_date: Optional[str] = None
     instructions: Optional[str] = None
     status: Optional[ExamStatus] = None
+    question_ids: Optional[List[str]] = None
+    student_ids: Optional[List[str]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reconcile_name_title(cls, values):
+        if isinstance(values, dict):
+            if not values.get("name") and values.get("title"):
+                values["name"] = values["title"]
+            elif not values.get("title") and values.get("name"):
+                values["title"] = values["name"]
+        return values
 
 class ExamStatusUpdateRequest(BaseModel):
     status: ExamStatus

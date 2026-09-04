@@ -27,8 +27,8 @@ interface QuestionItem {
 export const AdaptiveExamRunner: React.FC = () => {
   const [sessionActive, setSessionActive] = useState<boolean>(false);
   const [stepNumber, setStepNumber] = useState<number>(1);
-  const [currentTheta, setCurrentTheta] = useState<float>(0.0);
-  const [currentSem, setCurrentSem] = useState<float>(0.85);
+  const [currentTheta, setCurrentTheta] = useState<number>(0.0);
+  const [currentSem, setCurrentSem] = useState<number>(0.85);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [terminationReason, setTerminationReason] = useState<string>('');

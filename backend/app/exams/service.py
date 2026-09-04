@@ -45,6 +45,10 @@ class ExamService:
         if not teacher_id:
             raise HTTPException(status_code=400, detail="Valid teacher profile required to create exam.")
 
+        status_val = ExamStatus.ACTIVE.value
+        if data.status:
+            status_val = data.status.value if hasattr(data.status, "value") else str(data.status)
+
         exam_payload = {
             "name": data.name,
             "subject_id": data.subject_id,
@@ -55,7 +59,7 @@ class ExamService:
             "start_date": data.start_date,
             "end_date": data.end_date,
             "instructions": data.instructions,
-            "status": ExamStatus.DRAFT.value
+            "status": status_val
         }
 
         exam_id = ExamRepository.create_exam(exam_payload)
@@ -66,6 +70,10 @@ class ExamService:
 
         if data.student_ids:
             ExamRepository.set_exam_students(exam_id, data.student_ids)
+        else:
+            all_stus = ExamRepository.get_all_student_ids()
+            if all_stus:
+                ExamRepository.set_exam_students(exam_id, all_stus)
 
         return exam_id
 
@@ -103,11 +111,19 @@ class ExamService:
         if role == UserRole.TEACHER.value and exam["teacher_id"] != teacher_id:
             raise HTTPException(status_code=403, detail="Not authorized to edit this exam")
 
-        update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        update_dict = {k: v for k, v in data.model_dump(exclude={"question_ids", "student_ids"}).items() if v is not None}
         if "status" in update_dict and hasattr(update_dict["status"], "value"):
             update_dict["status"] = update_dict["status"].value
 
         ExamRepository.update_exam(exam_id, update_dict)
+
+        if data.question_ids is not None:
+            allocations = [{"question_id": qid, "marks_allocated": 1.0} for qid in data.question_ids]
+            ExamRepository.set_exam_questions(exam_id, allocations)
+
+        if data.student_ids is not None:
+            ExamRepository.set_exam_students(exam_id, data.student_ids)
+
         return ExamRepository.get_by_id(exam_id)
 
     @staticmethod

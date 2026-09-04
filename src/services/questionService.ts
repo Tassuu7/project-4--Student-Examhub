@@ -86,3 +86,5 @@ export class QuestionService {
     return response.json();
   }
 }
+
+export const questionService = QuestionService;

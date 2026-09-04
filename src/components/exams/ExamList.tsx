@@ -14,7 +14,9 @@ import {
   CheckCircle,
   PlayCircle,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { Exam, ExamStatus } from '../../types/exam';
 import { Subject } from '../../types/subject';
@@ -28,12 +30,14 @@ interface ExamListProps {
   onAutoGenerateClick: () => void;
   onViewResults: (exam: Exam) => void;
   onSelectExam?: (exam: Exam) => void;
+  onEditExam?: (exam: Exam) => void;
 }
 
 export const ExamList: React.FC<ExamListProps> = ({
   onCreateClick,
   onAutoGenerateClick,
   onViewResults,
+  onEditExam,
 }) => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -88,6 +92,22 @@ export const ExamList: React.FC<ExamListProps> = ({
       );
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Failed to update exam status', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteExam = async (exam: Exam) => {
+    if (!window.confirm(`Are you sure you want to delete "${exam.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      setActionLoading(exam.id);
+      await examService.deleteExam(exam.id);
+      showToast(`Exam "${exam.name}" deleted successfully`, 'success');
+      setExams((prev) => prev.filter((e) => e.id !== exam.id));
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete exam', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -298,10 +318,22 @@ export const ExamList: React.FC<ExamListProps> = ({
               </div>
 
               {/* Status Controls & Action Footers */}
-              <div className="mt-5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
+              <div className="mt-5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {onEditExam && (
+                    <button
+                      id={`btn-edit-exam-${exam.id}`}
+                      onClick={() => onEditExam(exam)}
+                      className="px-2.5 py-1 text-xs font-semibold rounded border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 transition-colors flex items-center gap-1"
+                      title="Edit examination details, questions & enrolled students"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      Edit Test
+                    </button>
+                  )}
                   {exam.status === 'draft' && (
                     <button
+                      id={`btn-activate-exam-${exam.id}`}
                       disabled={actionLoading === exam.id}
                       onClick={() => handleStatusChange(exam.id, 'active')}
                       className="px-2.5 py-1 text-xs font-medium rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 transition-colors flex items-center gap-1"
@@ -313,6 +345,7 @@ export const ExamList: React.FC<ExamListProps> = ({
                   )}
                   {exam.status === 'active' && (
                     <button
+                      id={`btn-end-exam-${exam.id}`}
                       disabled={actionLoading === exam.id}
                       onClick={() => handleStatusChange(exam.id, 'completed')}
                       className="px-2.5 py-1 text-xs font-medium rounded bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 transition-colors flex items-center gap-1"
@@ -322,9 +355,19 @@ export const ExamList: React.FC<ExamListProps> = ({
                       End Exam
                     </button>
                   )}
+                  <button
+                    id={`btn-delete-exam-${exam.id}`}
+                    disabled={actionLoading === exam.id}
+                    onClick={() => handleDeleteExam(exam)}
+                    className="p-1 text-xs font-medium rounded text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    title="Delete Examination"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 <button
+                  id={`btn-roster-exam-${exam.id}`}
                   onClick={() => onViewResults(exam)}
                   className="px-3 py-1 text-xs font-semibold rounded bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 transition-opacity"
                 >

@@ -65,6 +65,13 @@ export const examService = {
     });
   },
 
+  async updateExam(examId: string, data: Partial<ExamCreateFormData> & { status?: ExamStatus }): Promise<{ message: string; exam: Exam }> {
+    return request<{ message: string; exam: Exam }>(`/exams/${examId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   async autoGenerateExam(data: ExamAutoGenerateFormData): Promise<{ message: string; exam_id: string }> {
     return request<{ message: string; exam_id: string }>('/exams/auto-generate', {
       method: 'POST',

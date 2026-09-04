@@ -9,13 +9,16 @@ interface SubjectListModalProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  userRole?: 'admin' | 'teacher' | 'student';
 }
 
 export const SubjectListModal: React.FC<SubjectListModalProps> = ({
   isOpen,
   onClose,
   isAdmin = false,
+  userRole,
 }) => {
+  const canAdd = isAdmin || userRole === 'admin' || userRole === 'teacher';
   const { showSuccess, showError } = useToast();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,7 +103,7 @@ export const SubjectListModal: React.FC<SubjectListModalProps> = ({
                 className="w-full pl-9 pr-3 py-2 text-xs bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:bg-white"
               />
             </div>
-            {isAdmin && !isAdding && (
+            {canAdd && !isAdding && (
               <button
                 id="add-new-subject-btn"
                 onClick={() => setIsAdding(true)}

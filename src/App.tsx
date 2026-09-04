@@ -21,6 +21,18 @@ import { LiveProctoringDashboard } from './components/proctoring/LiveProctoringD
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
 import { StudentCertificatesTab } from './components/certificates/StudentCertificatesTab';
 import { CertificateVerificationPortal } from './components/certificates/CertificateVerificationPortal';
+import { UnifiedSystemNavigation, ExamHubNavigationTab } from './components/navigation/UnifiedSystemNavigation';
+import { AdaptiveExamRunner } from './components/adaptive/AdaptiveExamRunner';
+import { QTIManager } from './components/qti/QTIManager';
+import { RubricManager } from './components/rubrics/RubricManager';
+import { AccreditationDashboard } from './components/accreditation/AccreditationDashboard';
+import { BiometricVerificationConsole } from './components/biometrics/BiometricVerificationConsole';
+import { PlagiarismReviewView } from './components/plagiarism/PlagiarismReviewView';
+import { InstitutionalExamCalendar } from './components/scheduling/InstitutionalExamCalendar';
+import { CurriculumBlueprintView } from './components/curriculum/CurriculumBlueprintView';
+import { InstitutionalReportsView } from './components/reporting/InstitutionalReportsView';
+import { TenantAdminPortal } from './components/tenancy/TenantAdminPortal';
+import { ExamReviewPortal } from './components/student/ExamReviewPortal';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { Exam, ExamResult } from './types/exam';
 import { examService } from './services/examService';
@@ -46,10 +58,11 @@ function ExamHubContent() {
   const { showToast } = useToast();
 
   // Navigation tabs for Teacher/Admin/Student
-  const [activeTab, setActiveTab] = useState<'exams' | 'questions' | 'analytics' | 'proctoring' | 'audit' | 'certificates' | 'verify'>('exams');
+  const [activeTab, setActiveTab] = useState<ExamHubNavigationTab>('exams');
 
   // Modal states for Teacher/Admin
   const [showExamCreateModal, setShowExamCreateModal] = useState(false);
+  const [selectedExamForEdit, setSelectedExamForEdit] = useState<Exam | null>(null);
   const [showExamAutoModal, setShowExamAutoModal] = useState(false);
   const [selectedExamForResults, setSelectedExamForResults] = useState<Exam | null>(null);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -158,119 +171,18 @@ function ExamHubContent() {
                 </div>
               </div>
 
-              {/* Main Role Navigation Tabs */}
-              {isTeacherOrAdmin ? (
-                <nav className="hidden md:flex items-center gap-1 border-l border-stone-200 dark:border-zinc-800 pl-6">
-                  <button
-                    id="nav-tab-exams"
-                    onClick={() => setActiveTab('exams')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'exams'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <CalendarCheck className="w-4 h-4" />
-                    Examinations
-                  </button>
-                  <button
-                    id="nav-tab-questions"
-                    onClick={() => setActiveTab('questions')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'questions'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Question Bank
-                  </button>
-                  <button
-                    id="nav-tab-analytics"
-                    onClick={() => setActiveTab('analytics')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'analytics'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Analytics
-                  </button>
-                  <button
-                    id="nav-tab-proctoring"
-                    onClick={() => setActiveTab('proctoring')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'proctoring'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <ShieldAlert className="w-4 h-4" />
-                    Proctoring
-                  </button>
-                  {user.role === 'admin' && (
-                    <button
-                      id="nav-tab-audit"
-                      onClick={() => setActiveTab('audit')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                        activeTab === 'audit'
-                          ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                          : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                      }`}
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      Audit Logs
-                    </button>
-                  )}
+              {/* Quick Subjects Action for Staff */}
+              {isTeacherOrAdmin && (
+                <div className="hidden md:flex items-center gap-1 border-l border-stone-200 dark:border-zinc-800 pl-4">
                   <button
                     id="nav-tab-subjects"
                     onClick={() => setShowSubjectModal(true)}
                     className="px-3 py-1.5 text-xs font-semibold rounded-lg text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800 transition-colors flex items-center gap-1.5"
                   >
-                    <Layers className="w-4 h-4" />
-                    Subjects
+                    <Layers className="w-4 h-4 text-amber-600" />
+                    Manage Subjects
                   </button>
-                </nav>
-              ) : (
-                <nav className="hidden md:flex items-center gap-1 border-l border-stone-200 dark:border-zinc-800 pl-6">
-                  <button
-                    id="nav-tab-student-exams"
-                    onClick={() => setActiveTab('exams')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'exams'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <CalendarCheck className="w-4 h-4" />
-                    My Examinations
-                  </button>
-                  <button
-                    id="nav-tab-student-certs"
-                    onClick={() => setActiveTab('certificates')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'certificates'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <Award className="w-4 h-4" />
-                    My Certificates
-                  </button>
-                  <button
-                    id="nav-tab-student-verify"
-                    onClick={() => setActiveTab('verify')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
-                      activeTab === 'verify'
-                        ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                        : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 hover:bg-stone-100 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <Search className="w-4 h-4" />
-                    Verify Code
-                  </button>
-                </nav>
+                </div>
               )}
             </div>
 
@@ -354,6 +266,13 @@ function ExamHubContent() {
         </div>
       </header>
 
+      {/* Unified Enterprise Navigation Suite */}
+      <UnifiedSystemNavigation
+        currentTab={activeTab}
+        onSelectTab={setActiveTab}
+        userRole={user.role as 'admin' | 'teacher' | 'student'}
+      />
+
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isStudent ? (
@@ -365,6 +284,8 @@ function ExamHubContent() {
                 onViewResult={(attemptId) => handleStudentViewResult(attemptId)}
               />
             )}
+            {activeTab === 'adaptive_cat' && <AdaptiveExamRunner />}
+            {activeTab === 'student_review' && <ExamReviewPortal />}
             {activeTab === 'certificates' && <StudentCertificatesTab />}
             {activeTab === 'verify' && <CertificateVerificationPortal />}
           </div>
@@ -373,9 +294,16 @@ function ExamHubContent() {
           <div>
             {activeTab === 'exams' && (
               <ExamList
-                onCreateClick={() => setShowExamCreateModal(true)}
+                onCreateClick={() => {
+                  setSelectedExamForEdit(null);
+                  setShowExamCreateModal(true);
+                }}
                 onAutoGenerateClick={() => setShowExamAutoModal(true)}
                 onViewResults={(exam) => setSelectedExamForResults(exam)}
+                onEditExam={(exam) => {
+                  setSelectedExamForEdit(exam);
+                  setShowExamCreateModal(true);
+                }}
               />
             )}
 
@@ -383,11 +311,37 @@ function ExamHubContent() {
               <QuestionList userRole={user.role as 'admin' | 'teacher'} />
             )}
 
+            {activeTab === 'adaptive_cat' && <AdaptiveExamRunner />}
+
             {activeTab === 'analytics' && <AnalyticsDashboard />}
 
             {activeTab === 'proctoring' && <LiveProctoringDashboard />}
 
+            {activeTab === 'certificates' && <StudentCertificatesTab />}
+
+            {activeTab === 'qti' && <QTIManager />}
+
+            {activeTab === 'rubrics' && <RubricManager />}
+
+            {activeTab === 'accreditation' && <AccreditationDashboard />}
+
+            {activeTab === 'biometrics' && <BiometricVerificationConsole />}
+
+            {activeTab === 'plagiarism' && <PlagiarismReviewView />}
+
+            {activeTab === 'scheduling' && <InstitutionalExamCalendar />}
+
+            {activeTab === 'curriculum' && <CurriculumBlueprintView />}
+
+            {activeTab === 'reports' && <InstitutionalReportsView />}
+
+            {activeTab === 'tenancy' && <TenantAdminPortal />}
+
             {activeTab === 'audit' && <AuditLogViewer />}
+
+            {activeTab === 'student_review' && <ExamReviewPortal />}
+
+            {activeTab === 'verify' && <CertificateVerificationPortal />}
           </div>
         )}
       </main>
@@ -396,9 +350,14 @@ function ExamHubContent() {
       {showExamCreateModal && (
         <ExamFormModal
           isOpen={showExamCreateModal}
-          onClose={() => setShowExamCreateModal(false)}
+          examToEdit={selectedExamForEdit}
+          onClose={() => {
+            setShowExamCreateModal(false);
+            setSelectedExamForEdit(null);
+          }}
           onSuccess={() => {
             setShowExamCreateModal(false);
+            setSelectedExamForEdit(null);
             setActiveTab('exams');
           }}
         />

@@ -233,6 +233,13 @@ class ExamRepository:
         return [dict(r) for r in cursor.fetchall()]
 
     @staticmethod
+    def get_all_student_ids() -> List[str]:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM students;")
+        return [row[0] for row in cursor.fetchall()]
+
+    @staticmethod
     def get_student_assigned_exams(student_id: str) -> List[Dict[str, Any]]:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -240,20 +247,22 @@ class ExamRepository:
             """SELECT e.*, s.code as subject_code, s.name as subject_name,
                       u.full_name as teacher_name,
                       (SELECT COUNT(*) FROM exam_questions WHERE exam_id = e.id) as question_count,
-                      ea.can_attempt, ea.attempts_allowed,
+                      COALESCE(ea.can_attempt, 1) as can_attempt,
+                      COALESCE(ea.attempts_allowed, 1) as attempts_allowed,
                       att.id as attempt_id, att.status as attempt_status,
                       att.time_remaining_seconds, att.start_time, att.end_time,
                       res.obtained_marks, res.percentage, res.grade, res.pass_fail, res.rank
-               FROM exam_assignments ea
-               JOIN exams e ON ea.exam_id = e.id
+               FROM exams e
                JOIN subjects s ON e.subject_id = s.id
                JOIN teachers t ON e.teacher_id = t.id
                JOIN users u ON t.user_id = u.id
-               LEFT JOIN exam_attempts att ON att.exam_id = e.id AND att.student_id = ea.student_id
+               LEFT JOIN exam_assignments ea ON ea.exam_id = e.id AND ea.student_id = ?
+               LEFT JOIN exam_attempts att ON att.exam_id = e.id AND att.student_id = ?
                LEFT JOIN results res ON res.attempt_id = att.id
-               WHERE ea.student_id = ?
+               WHERE (ea.student_id = ? OR e.status IN ('active', 'scheduled', 'completed'))
+                 AND e.status != 'cancelled'
                ORDER BY e.start_date DESC;""",
-            (student_id,)
+            (student_id, student_id, student_id)
         )
         return [dict(r) for r in cursor.fetchall()]
 
