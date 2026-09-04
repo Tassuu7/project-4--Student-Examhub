@@ -116,3 +116,40 @@ class ProctoringService:
             active_candidates=candidates,
             recent_events=recent_events
         )
+
+    @staticmethod
+    def send_warning(attempt_id: str, message: str) -> str:
+        return ProctoringRepository.log_event(
+            attempt_id=attempt_id,
+            event_type="teacher_warning",
+            details=f"Proctor Warning Issued: {message}",
+            severity="medium"
+        )
+
+    @staticmethod
+    def terminate_session(attempt_id: str, reason: str) -> bool:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE exam_attempts SET status = 'auto_submitted', end_time = CURRENT_TIMESTAMP WHERE id = ?", (attempt_id,))
+        conn.commit()
+        ProctoringRepository.log_event(
+            attempt_id=attempt_id,
+            event_type="session_terminated",
+            details=f"Session Terminated by Proctor: {reason}",
+            severity="critical"
+        )
+        return True
+
+    @staticmethod
+    def clear_flags(attempt_id: str) -> bool:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM proctoring_logs WHERE attempt_id = ? AND event_type NOT IN ('session_started', 'camera_started')", (attempt_id,))
+        conn.commit()
+        ProctoringRepository.log_event(
+            attempt_id=attempt_id,
+            event_type="flags_cleared",
+            details="Proctor reviewed session and cleared anomaly flags",
+            severity="low"
+        )
+        return True

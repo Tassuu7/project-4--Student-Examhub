@@ -54,6 +54,7 @@ export interface Exam {
   start_date: string;
   end_date: string;
   instructions?: string;
+  require_camera_proctoring?: boolean;
   status: ExamStatus;
   question_count: number;
   assigned_count?: number;
@@ -106,6 +107,7 @@ export interface ExamAttemptStartResponse {
   status: AttemptStatus;
   questions: ExamAttemptQuestion[];
   instructions?: string;
+  require_camera_proctoring?: boolean;
 }
 
 export interface ReviewItem {

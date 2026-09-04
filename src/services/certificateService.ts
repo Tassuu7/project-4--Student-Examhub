@@ -7,13 +7,28 @@ import {
   CertificateRecord,
   CertificateVerificationResponse,
   StudentCertificatesListResponse,
+  CertificateIssueRequest,
 } from '../types/certificate';
 
 export const certificateService = {
-  issueCertificate: (attemptId: string, customTitle?: string): Promise<CertificateRecord> => {
-    return api.post<CertificateRecord>('/certificates/issue', {
-      attempt_id: attemptId,
-      custom_title: customTitle,
+  listAllCertificates: (): Promise<StudentCertificatesListResponse> => {
+    return api.get<StudentCertificatesListResponse>('/certificates');
+  },
+
+  issueCertificate: (req: string | CertificateIssueRequest, customTitle?: string): Promise<CertificateRecord> => {
+    if (typeof req === 'string') {
+      return api.post<CertificateRecord>('/certificates/issue', {
+        attempt_id: req,
+        custom_title: customTitle,
+      });
+    }
+    return api.post<CertificateRecord>('/certificates/issue', req);
+  },
+
+  revokeCertificate: (certificateCode: string, reason: string): Promise<{ status: string }> => {
+    return api.post<{ status: string }>(`/certificates/revoke/${encodeURIComponent(certificateCode)}`, {
+      reason,
+      revoked_by: 'Instructor Review',
     });
   },
 

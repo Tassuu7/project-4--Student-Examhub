@@ -72,6 +72,7 @@ async def examhub_exception_handler(request: Request, exc: ExamHubException):
     )
 
 # Health Check
+@app.get("/health")
 @app.get("/api/health")
 @app.get(f"{API_PREFIX}/health")
 def health_check():

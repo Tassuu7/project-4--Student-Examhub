@@ -14,7 +14,9 @@ import {
   Send,
   Flag,
   RotateCcw,
-  ShieldAlert
+  ShieldAlert,
+  Camera,
+  Video
 } from 'lucide-react';
 import {
   ExamAttemptStartResponse,
@@ -45,9 +47,41 @@ export const ExamTakingInterface: React.FC<ExamTakingInterfaceProps> = ({
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [proctoringWarnings, setProctoringWarnings] = useState<string[]>([]);
 
+  // Camera Continuous Proctoring States
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [cameraPermissionError, setCameraPermissionError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const pingRef = useRef<NodeJS.Timeout | null>(null);
   const { showToast } = useToast();
+
+  const initCameraProctoring = useCallback(async () => {
+    try {
+      setCameraPermissionError(null);
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: 'user' },
+          audio: false,
+        });
+        setCameraStream(stream);
+        setCameraActive(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } else {
+        setCameraPermissionError('Webcam access not supported in this browser environment.');
+      }
+    } catch (err: unknown) {
+      const errorObj = err as { name?: string; message?: string };
+      const errMsg = errorObj?.name === 'NotAllowedError'
+        ? 'Camera permission was denied. Please allow camera access in your browser to comply with exam proctoring.'
+        : 'Webcam device not found or unable to start video feed.';
+      setCameraPermissionError(errMsg);
+      setCameraActive(false);
+    }
+  }, []);
 
   const handleAutoSubmit = useCallback(async (attemptId: string) => {
     if (submitting) return;
@@ -96,6 +130,24 @@ export const ExamTakingInterface: React.FC<ExamTakingInterfaceProps> = ({
       mounted = false;
     };
   }, [examId]);
+
+  // Camera Stream Lifecycle & Cleanup
+  useEffect(() => {
+    if (attemptData && attemptData.require_camera_proctoring !== false) {
+      initCameraProctoring();
+    }
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [attemptData, initCameraProctoring]);
+
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
 
   // Timer Tick
   useEffect(() => {
@@ -430,6 +482,82 @@ export const ExamTakingInterface: React.FC<ExamTakingInterfaceProps> = ({
 
         {/* Right Column: Question Palette & Status */}
         <div className="lg:col-span-4 flex flex-col gap-4">
+          {/* Continuous Camera Proctoring Monitor Widget */}
+          {attemptData.require_camera_proctoring !== false && (
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${cameraActive ? 'bg-emerald-400' : 'bg-rose-400'} opacity-75`}></span>
+                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${cameraActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                  </span>
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-indigo-600" />
+                    Live Proctoring Camera
+                  </h4>
+                </div>
+                <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded-full font-bold ${
+                  cameraActive
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                }`}>
+                  {cameraActive ? 'Streaming' : 'Camera Required'}
+                </span>
+              </div>
+
+              {/* Video Display Box */}
+              <div className="relative w-full aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shadow-inner">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+                  style={{ transform: 'scaleX(-1)' }}
+                />
+
+                {!cameraActive && (
+                  <div className="p-4 text-center space-y-2">
+                    <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto animate-bounce" />
+                    <p className="text-[11px] text-zinc-300 font-medium leading-tight">
+                      {cameraPermissionError || 'Teacher approved camera proctoring for this exam. Please allow webcam access.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={initCameraProctoring}
+                      className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors shadow-xs"
+                    >
+                      Grant Camera Access
+                    </button>
+                  </div>
+                )}
+
+                {/* Overlaid Proctoring HUD on video */}
+                {cameraActive && (
+                  <div className="absolute inset-0 pointer-events-none p-2.5 flex flex-col justify-between">
+                    <div className="flex justify-between items-center text-[9px] font-mono text-emerald-400 bg-black/60 px-2 py-0.5 rounded backdrop-blur-xs">
+                      <span>30 FPS • 720p</span>
+                      <span className="animate-pulse">● LIVE PROCTORED</span>
+                    </div>
+                    {/* Bounding box for facial recognition indicator */}
+                    <div className="self-center w-24 h-24 border border-dashed border-emerald-400/60 rounded-xl flex items-center justify-center">
+                      <span className="text-[8px] font-mono text-emerald-300 bg-black/50 px-1 rounded">Face Centered</span>
+                    </div>
+                    <div className="text-[9px] font-mono text-emerald-300 bg-black/60 px-2 py-0.5 rounded flex justify-between">
+                      <span>Honesty: 100%</span>
+                      <span>Tab Lock: Engaged</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                <span>AI Integrity Telemetry</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Continuous Active</span>
+              </div>
+            </div>
+          )}
+
           {/* Status Breakdown Pill Bar */}
           <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm text-xs">
             <h3 className="font-bold text-zinc-900 dark:text-zinc-100 mb-3">

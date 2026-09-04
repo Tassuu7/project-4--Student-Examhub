@@ -10,9 +10,21 @@ from backend.app.core.constants import ExamStatus, AttemptStatus, EvaluationResu
 
 class ExamRepository:
     @staticmethod
+    def ensure_columns():
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(exams)")
+        cols = [c[1] for c in cursor.fetchall()]
+        if "require_camera_proctoring" not in cols:
+            cursor.execute("ALTER TABLE exams ADD COLUMN require_camera_proctoring INTEGER DEFAULT 1")
+            conn.commit()
+
+    @staticmethod
     def create_exam(data: Dict[str, Any]) -> str:
+        ExamRepository.ensure_columns()
         exam_id = str(uuid.uuid4())
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        req_cam = 1 if data.get("require_camera_proctoring", True) else 0
         with transaction():
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -20,8 +32,8 @@ class ExamRepository:
                 """INSERT INTO exams (
                     id, name, subject_id, teacher_id, description, duration_minutes,
                     total_marks, passing_percentage, start_date, end_date, instructions,
-                    status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                    require_camera_proctoring, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
                 (
                     exam_id,
                     data["name"].strip(),
@@ -34,6 +46,7 @@ class ExamRepository:
                     data["start_date"],
                     data["end_date"],
                     data.get("instructions"),
+                    req_cam,
                     data.get("status", ExamStatus.DRAFT.value),
                     now,
                     now
@@ -45,6 +58,7 @@ class ExamRepository:
     def update_exam(exam_id: str, data: Dict[str, Any]) -> bool:
         if not data:
             return False
+        ExamRepository.ensure_columns()
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         fields = []
         values = []
@@ -54,6 +68,9 @@ class ExamRepository:
                      "instructions", "status"]:
                 fields.append(f"{k} = ?")
                 values.append(v)
+            elif k == "require_camera_proctoring":
+                fields.append("require_camera_proctoring = ?")
+                values.append(1 if v else 0)
         fields.append("updated_at = ?")
         values.append(now)
         values.append(exam_id)

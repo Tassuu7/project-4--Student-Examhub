@@ -25,4 +25,22 @@ export const proctoringService = {
   getLiveFeed: (): Promise<ProctoringLiveFeedResponse> => {
     return api.get<ProctoringLiveFeedResponse>('/proctoring/feed');
   },
+
+  sendWarning: (attemptId: string, warningMessage: string): Promise<{ status: string; event_id: string }> => {
+    return api.post<{ status: string; event_id: string }>('/proctoring/warning', {
+      attempt_id: attemptId,
+      warning_message: warningMessage,
+    });
+  },
+
+  terminateSession: (attemptId: string, reason: string): Promise<{ status: string; attempt_id: string }> => {
+    return api.post<{ status: string; attempt_id: string }>('/proctoring/terminate', {
+      attempt_id: attemptId,
+      reason,
+    });
+  },
+
+  clearFlags: (attemptId: string): Promise<{ status: string; attempt_id: string }> => {
+    return api.post<{ status: string; attempt_id: string }>(`/proctoring/clear-flags/${attemptId}`);
+  },
 };

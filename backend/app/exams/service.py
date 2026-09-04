@@ -224,7 +224,8 @@ class ExamService:
             "start_time": start_time,
             "status": status_val,
             "questions": public_questions,
-            "instructions": exam.get("instructions")
+            "instructions": exam.get("instructions"),
+            "require_camera_proctoring": bool(exam.get("require_camera_proctoring", 1))
         }
 
     @staticmethod

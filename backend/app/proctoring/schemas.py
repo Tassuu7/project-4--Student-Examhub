@@ -55,3 +55,11 @@ class ProctoringLiveFeedResponse(BaseModel):
     flagged_sessions_count: int
     active_candidates: List[ActiveSessionMonitoringItem]
     recent_events: List[ProctoringEventItem]
+
+class TeacherWarningRequest(BaseModel):
+    attempt_id: str
+    warning_message: str
+
+class TerminateSessionRequest(BaseModel):
+    attempt_id: str
+    reason: str

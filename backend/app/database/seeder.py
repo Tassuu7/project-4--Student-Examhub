@@ -625,6 +625,82 @@ def seed_database(force_reseed: bool = False):
                      "active", yesterday)
                 )
 
+        # 7B. SEED ACTIVE IN-PROGRESS PROCTORED SESSIONS FOR CONTINUOUS MONITORING
+        from backend.app.proctoring.repository import ProctoringRepository
+        ProctoringRepository.ensure_columns()
+        from backend.app.exams.repository import ExamRepository
+        ExamRepository.ensure_columns()
+
+        exam4_id = str(uuid.uuid4())
+        cursor.execute(
+            """INSERT INTO exams (id, name, subject_id, teacher_id, description, duration_minutes, total_marks,
+                                 passing_percentage, start_date, end_date, instructions, require_camera_proctoring, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?);""",
+            (
+                exam4_id,
+                "Applied Software Architecture & Secure Engineering Lab",
+                sub_map["SE301"],
+                teacher_records[1]["teacher_id"],
+                "Real-time laboratory testing symmetric encryption, public-key infrastructure, and firewall configurations.",
+                60,
+                10.0,
+                50.0,
+                now,
+                next_week,
+                "Continuous camera proctoring is enabled. Ensure your camera is centered.",
+                ExamStatus.ACTIVE.value,
+                now,
+                now
+            )
+        )
+        for s in student_records:
+            cursor.execute(
+                """INSERT INTO exam_assignments (id, exam_id, student_id, assigned_at, can_attempt, attempts_allowed)
+                   VALUES (?, ?, ?, ?, 1, 1);""",
+                (str(uuid.uuid4()), exam4_id, s["student_id"], now)
+            )
+
+        # Active candidate 1: David Kim (spotless session, integrity ~98%)
+        att_david = str(uuid.uuid4())
+        cursor.execute(
+            """INSERT INTO exam_attempts (id, exam_id, student_id, start_time, status, time_remaining_seconds, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 'in_progress', 1840, ?, ?);""",
+            (att_david, exam4_id, student_records[2]["student_id"], now, now, now)
+        )
+        cursor.execute(
+            """INSERT INTO proctoring_logs (id, attempt_id, event_type, details, timestamp, severity)
+               VALUES (?, ?, 'camera_started', 'Candidate webcam feed active (30fps, face centered).', ?, 'low');""",
+            (str(uuid.uuid4()), att_david, now)
+        )
+        cursor.execute(
+            """INSERT INTO proctoring_logs (id, attempt_id, event_type, details, timestamp, severity)
+               VALUES (?, ?, 'face_verified', 'Single candidate face verified and anchored.', ?, 'low');""",
+            (str(uuid.uuid4()), att_david, now)
+        )
+
+        # Active candidate 2: Frank Miller (flagged session with anomalies, integrity ~68%)
+        att_frank = str(uuid.uuid4())
+        cursor.execute(
+            """INSERT INTO exam_attempts (id, exam_id, student_id, start_time, status, time_remaining_seconds, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 'in_progress', 1250, ?, ?);""",
+            (att_frank, exam4_id, student_records[4]["student_id"], now, now, now)
+        )
+        cursor.execute(
+            """INSERT INTO proctoring_logs (id, attempt_id, event_type, details, timestamp, severity)
+               VALUES (?, ?, 'camera_started', 'Candidate webcam feed active.', ?, 'low');""",
+            (str(uuid.uuid4()), att_frank, now)
+        )
+        cursor.execute(
+            """INSERT INTO proctoring_logs (id, attempt_id, event_type, details, timestamp, severity)
+               VALUES (?, ?, 'tab_switch', 'Browser window lost focus. Candidate switched to background tab.', ?, 'medium');""",
+            (str(uuid.uuid4()), att_frank, now)
+        )
+        cursor.execute(
+            """INSERT INTO proctoring_logs (id, attempt_id, event_type, details, timestamp, severity)
+               VALUES (?, ?, 'face_anomalies', 'Candidate looked away from screen for over 6 seconds.', ?, 'medium');""",
+            (str(uuid.uuid4()), att_frank, now)
+        )
+
         # 8. NOTIFICATIONS
         notifs = [
             (student_records[0]["user_id"], "Certificate Awarded!", "Congratulations! You have been awarded Certificate CERT-2026-DS-001 for Data Structures.", "certificate_awarded", yesterday),

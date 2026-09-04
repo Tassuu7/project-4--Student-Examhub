@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Exam, ExamResult, IntegritySummary } from '../../types/exam';
 import { examService } from '../../services/examService';
+import { certificateService } from '../../services/certificateService';
 import { useToast } from '../../contexts/ToastContext';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 
@@ -38,8 +39,21 @@ export const ExamResultsModal: React.FC<ExamResultsModalProps> = ({
   const [selectedIntegrity, setSelectedIntegrity] = useState<IntegritySummary | null>(null);
   const [loadingIntegrity, setLoadingIntegrity] = useState(false);
   const [loadingScorecardId, setLoadingScorecardId] = useState<string | null>(null);
+  const [issuingCertAttemptId, setIssuingCertAttemptId] = useState<string | null>(null);
 
   const { showToast } = useToast();
+
+  const handleIssueCertificateForCandidate = async (attemptId: string, studentName: string) => {
+    try {
+      setIssuingCertAttemptId(attemptId);
+      await certificateService.issueCertificate(attemptId);
+      showToast(`Digital certificate issued successfully for ${studentName}!`, 'success');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Could not issue certificate', 'error');
+    } finally {
+      setIssuingCertAttemptId(null);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -232,6 +246,23 @@ export const ExamResultsModal: React.FC<ExamResultsModalProps> = ({
                           >
                             <ShieldAlert className="w-4 h-4" />
                           </button>
+                          {r.pass_fail === 'PASS' && (
+                            <button
+                              onClick={() => handleIssueCertificateForCandidate(r.attempt_id, r.student_name)}
+                              disabled={issuingCertAttemptId === r.attempt_id}
+                              className="px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40 font-semibold text-[11px] flex items-center gap-1 transition-colors disabled:opacity-50"
+                              title="Award Digital Certificate"
+                            >
+                              {issuingCertAttemptId === r.attempt_id ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <>
+                                  <Award className="w-3 h-3 text-amber-600" />
+                                  Issue Cert
+                                </>
+                              )}
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenScorecard(r.attempt_id)}
                             disabled={loadingScorecardId === r.attempt_id}

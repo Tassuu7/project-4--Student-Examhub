@@ -45,3 +45,11 @@ export interface StudentCertificatesListResponse {
   total_certificates: number;
   items: CertificateRecord[];
 }
+
+export interface CertificateIssueRequest {
+  attempt_id?: string;
+  student_id?: string;
+  exam_id?: string;
+  custom_title?: string;
+  expiry_months?: number;
+}

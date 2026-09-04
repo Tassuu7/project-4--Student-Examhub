@@ -48,6 +48,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [instructions, setInstructions] = useState('1. Answer all questions.\n2. Do not switch browser tabs.\n3. Exam will auto-submit when the timer expires.');
+  const [requireCameraProctoring, setRequireCameraProctoring] = useState(true);
 
   // Pickers State
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -98,6 +99,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
         examToEdit.instructions ||
           '1. Answer all questions.\n2. Do not switch browser tabs.\n3. Exam will auto-submit when the timer expires.'
       );
+      setRequireCameraProctoring(examToEdit.require_camera_proctoring ?? true);
     } else {
       setName('');
       setDescription('');
@@ -108,6 +110,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
       setInstructions(
         '1. Answer all questions.\n2. Do not switch browser tabs.\n3. Exam will auto-submit when the timer expires.'
       );
+      setRequireCameraProctoring(true);
       setSelectedQuestionIds([]);
       setSelectedStudentIds([]);
     }
@@ -217,6 +220,7 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
         instructions: instructions.trim() || undefined,
+        require_camera_proctoring: requireCameraProctoring,
         question_ids: selectedQuestionIds,
         student_ids: selectedStudentIds,
       };
@@ -439,6 +443,25 @@ export const ExamFormModal: React.FC<ExamFormModalProps> = ({
                       onChange={(e) => setInstructions(e.target.value)}
                       className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
+                  </div>
+
+                  {/* Camera & Continuous Proctoring Setting */}
+                  <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/20 flex items-start gap-3">
+                    <input
+                      id="toggle-camera-proctoring"
+                      type="checkbox"
+                      checked={requireCameraProctoring}
+                      onChange={(e) => setRequireCameraProctoring(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-indigo-600 rounded border-zinc-300 dark:border-zinc-700 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <label htmlFor="toggle-camera-proctoring" className="cursor-pointer">
+                      <span className="block text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                        Require Live Camera Access & Continuous Proctoring
+                      </span>
+                      <span className="block text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-normal">
+                        When approved by the teacher, candidate will be prompted for live webcam permissions. The system monitors face presence, gaze direction, tab switching, and window focus during the entire assessment.
+                      </span>
+                    </label>
                   </div>
                 </div>
               )}

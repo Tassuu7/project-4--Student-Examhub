@@ -29,9 +29,11 @@ def issue_certificate(
 ):
     """Issue a verified digital certificate for a completed and passed exam attempt."""
     return CertificateService.issue_certificate_for_attempt(
-        payload.attempt_id,
-        payload.custom_title,
-        payload.expiry_months or 24
+        attempt_id=payload.attempt_id,
+        custom_title=payload.custom_title,
+        expiry_months=payload.expiry_months or 24,
+        student_id=payload.student_id,
+        exam_id=payload.exam_id
     )
 
 @router.get("/verify/{certificate_code}", response_model=CertificateVerificationResponse)
@@ -67,9 +69,9 @@ def render_certificate_html(certificate_code: str):
 def revoke_certificate(
     certificate_code: str,
     payload: CertificateRevocationRequest,
-    current_user: Dict[str, Any] = Depends(require_role(["admin"]))
+    current_user: Dict[str, Any] = Depends(require_role(["admin", "teacher"]))
 ):
-    """Admin-only endpoint: Revoke an issued certificate with justification."""
+    """Admin and Teacher endpoint: Revoke an issued certificate with justification."""
     success = CertificateRepository.revoke_certificate(certificate_code, payload.reason)
     if not success:
         raise NotFoundException(f"Certificate '{certificate_code}' not found.")

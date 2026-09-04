@@ -8,7 +8,9 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 class CertificateIssueRequest(BaseModel):
-    attempt_id: str
+    attempt_id: Optional[str] = None
+    student_id: Optional[str] = None
+    exam_id: Optional[str] = None
     custom_title: Optional[str] = None
     expiry_months: Optional[int] = Field(default=24, ge=1, le=120)
 
@@ -50,7 +52,7 @@ class CertificateRecord(BaseModel):
 
 class CertificateRevocationRequest(BaseModel):
     reason: str
-    revoked_by: str
+    revoked_by: Optional[str] = None
 
 class StudentCertificatesListResponse(BaseModel):
     student_id: str

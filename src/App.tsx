@@ -19,6 +19,7 @@ import { SubjectListModal } from './components/subjects/SubjectListModal';
 import { AnalyticsDashboard } from './components/analytics/AnalyticsDashboard';
 import { LiveProctoringDashboard } from './components/proctoring/LiveProctoringDashboard';
 import { StudentCertificatesTab } from './components/certificates/StudentCertificatesTab';
+import { TeacherCertificatesTab } from './components/certificates/TeacherCertificatesTab';
 import { UnifiedSystemNavigation, ExamHubNavigationTab } from './components/navigation/UnifiedSystemNavigation';
 import { PrincipalDashboard } from './components/principal/PrincipalDashboard';
 import { TeacherStudentMonitoring } from './components/teacher/TeacherStudentMonitoring';
@@ -307,7 +308,7 @@ function ExamHubContent() {
               <LiveProctoringDashboard />
             )}
             {activeTab === 'certificates' && (
-              <StudentCertificatesTab />
+              <TeacherCertificatesTab />
             )}
           </div>
         )}

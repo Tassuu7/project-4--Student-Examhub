@@ -16,6 +16,7 @@ class ExamBase(BaseModel):
     start_date: str
     end_date: str
     instructions: Optional[str] = None
+    require_camera_proctoring: Optional[bool] = True
 
     @model_validator(mode="before")
     @classmethod
@@ -42,6 +43,7 @@ class ExamUpdateRequest(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     instructions: Optional[str] = None
+    require_camera_proctoring: Optional[bool] = None
     status: Optional[ExamStatus] = None
     question_ids: Optional[List[str]] = None
     student_ids: Optional[List[str]] = None
@@ -99,6 +101,7 @@ class ExamResponse(BaseModel):
     start_date: str
     end_date: str
     instructions: Optional[str] = None
+    require_camera_proctoring: bool = True
     status: ExamStatus
     question_count: int = 0
     assigned_students_count: int = 0
@@ -143,6 +146,7 @@ class ExamAttemptStartResponse(BaseModel):
     status: AttemptStatus
     questions: List[ExamQuestionPublic]
     instructions: Optional[str] = None
+    require_camera_proctoring: bool = True
 
 class ExamAttemptSubmitRequest(BaseModel):
     confirm: bool = True
