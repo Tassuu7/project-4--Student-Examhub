@@ -95,6 +95,16 @@ class CertificateService:
         )
 
     @staticmethod
+    def list_all_certificates() -> StudentCertificatesListResponse:
+        records = CertificateRepository.list_all_certificates()
+        items = [CertificateService._map_record(r) for r in records]
+        return StudentCertificatesListResponse(
+            student_id="all",
+            total_certificates=len(items),
+            items=items
+        )
+
+    @staticmethod
     def _map_record(row: Dict[str, Any]) -> CertificateRecord:
         return CertificateRecord(
             id=row["id"],

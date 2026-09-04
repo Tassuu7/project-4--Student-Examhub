@@ -36,6 +36,7 @@ from backend.app.notifications_engine.router import router as notifications_engi
 from backend.app.analytics_drilldown.router import router as analytics_drilldown_router
 from backend.app.audit_compliance.router import router as audit_compliance_router
 from backend.app.exam_delivery.router import router as exam_delivery_router
+from backend.app.feedbacks.router import router as feedbacks_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -95,6 +96,7 @@ app.include_router(export_import_router, prefix=API_PREFIX)
 app.include_router(audit_router, prefix=API_PREFIX)
 app.include_router(institutions_router, prefix=API_PREFIX)
 app.include_router(notifications_router, prefix=API_PREFIX)
+app.include_router(feedbacks_router, prefix=API_PREFIX)
 app.include_router(adaptive_testing_router)
 app.include_router(qti_router)
 app.include_router(rubrics_router)

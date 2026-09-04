@@ -80,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   required
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="e.g. admin, teacher_smith, student_alice"
+                  placeholder="e.g. principal_sharma, teacher_smith, student_alice"
                   className="block w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-lg text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-colors"
                 />
               </div>
@@ -129,16 +129,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </p>
             <div className="grid grid-cols-3 gap-2">
               <button
-                id="demo-admin-button"
+                id="demo-principal-button"
                 type="button"
-                onClick={() => setDemoCredentials('admin', 'password123')}
+                onClick={() => setDemoCredentials('principal_sharma', 'password123')}
                 className="p-2.5 text-left rounded-lg border border-stone-200 hover:border-stone-400 bg-stone-50 hover:bg-stone-100 transition-colors"
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-800">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Admin</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Principal</span>
                 </div>
-                <p className="text-[11px] text-stone-500 mt-0.5">admin</p>
+                <p className="text-[11px] text-stone-500 mt-0.5">Dr. Sharma</p>
               </button>
 
               <button
@@ -148,7 +148,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 className="p-2.5 text-left rounded-lg border border-stone-200 hover:border-stone-400 bg-stone-50 hover:bg-stone-100 transition-colors"
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-800">
-                  <BookOpen className="w-3.5 h-3.5 text-teal-600" />
+                  <BookOpen className="w-3.5 h-3.5 text-amber-600" />
                   <span>Teacher</span>
                 </div>
                 <p className="text-[11px] text-stone-500 mt-0.5">Prof. Smith</p>
@@ -161,7 +161,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 className="p-2.5 text-left rounded-lg border border-stone-200 hover:border-stone-400 bg-stone-50 hover:bg-stone-100 transition-colors"
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-800">
-                  <GraduationCap className="w-3.5 h-3.5 text-amber-600" />
+                  <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
                   <span>Student</span>
                 </div>
                 <p className="text-[11px] text-stone-500 mt-0.5">Alice (STU001)</p>

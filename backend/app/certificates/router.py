@@ -39,6 +39,13 @@ def verify_certificate(certificate_code: str):
     """Public endpoint: Verify the cryptographic authenticity and validity of a certificate."""
     return CertificateVerifier.verify_by_code(certificate_code)
 
+@router.get("", response_model=StudentCertificatesListResponse)
+def list_all_certificates(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """Retrieve all issued academic certificates across the institution."""
+    return CertificateService.list_all_certificates()
+
 @router.get("/student/{student_id}", response_model=StudentCertificatesListResponse)
 def get_student_certificates(
     student_id: str,

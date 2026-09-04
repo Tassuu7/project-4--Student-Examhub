@@ -26,7 +26,7 @@ def get_token(username):
 
 def test_full_exam_lifecycle():
     teacher_token = get_token("teacher_smith")
-    student_token = get_token("student_carol")
+    student_token = get_token("student_alice")
     t_headers = {"Authorization": f"Bearer {teacher_token}"}
     s_headers = {"Authorization": f"Bearer {student_token}"}
 
@@ -49,8 +49,8 @@ def test_full_exam_lifecycle():
     assert stu_res.status_code == 200
     students = stu_res.json()["items"]
     assert len(students) > 0
-    # Carol's student id
-    student_record = next(s for s in students if "carol" in s["email"])
+    # Alice's student id
+    student_record = next(s for s in students if "alice" in s["email"])
     student_id = student_record["student_id"]
 
     # 2. Teacher creates an exam

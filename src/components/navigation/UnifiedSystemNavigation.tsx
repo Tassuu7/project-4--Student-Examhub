@@ -1,41 +1,26 @@
 import React from 'react';
 import {
   BookOpen,
-  BrainCircuit,
   BarChart3,
   ShieldCheck,
   Award,
-  Calendar,
-  Layers,
-  Fingerprint,
-  Building2,
-  FileSearch,
-  Sigma,
-  HelpCircle,
   FileText,
-  Clock,
-  Settings
+  Users,
+  MessageSquare,
+  LayoutDashboard,
+  CheckCircle2
 } from 'lucide-react';
 
 export type ExamHubNavigationTab =
+  | 'principal_dashboard'
   | 'exams'
   | 'questions'
-  | 'adaptive_cat'
-  | 'analytics'
+  | 'student_monitoring'
+  | 'feedback'
   | 'proctoring'
+  | 'results'
   | 'certificates'
-  | 'qti'
-  | 'rubrics'
-  | 'accreditation'
-  | 'biometrics'
-  | 'plagiarism'
-  | 'scheduling'
-  | 'curriculum'
-  | 'reports'
-  | 'tenancy'
-  | 'student_review'
-  | 'audit'
-  | 'verify';
+  | 'analytics';
 
 interface NavProps {
   currentTab: ExamHubNavigationTab;
@@ -44,38 +29,44 @@ interface NavProps {
 }
 
 export const UnifiedSystemNavigation: React.FC<NavProps> = ({ currentTab, onSelectTab, userRole }) => {
-  const adminTeacherTabs = [
-    { id: 'exams', label: 'Examinations', icon: BookOpen },
-    { id: 'questions', label: 'Item Studio', icon: FileText },
-    { id: 'adaptive_cat', label: 'Adaptive CAT', icon: BrainCircuit },
+  // 1. Principal / Admin: Executive Overview, Exam Oversight, Student Monitoring, Feedback, Analytics, Certificates
+  const principalTabs = [
+    { id: 'principal_dashboard', label: 'Executive Overview', icon: LayoutDashboard },
+    { id: 'exams', label: 'Examinations Oversight', icon: BookOpen },
+    { id: 'student_monitoring', label: 'Student Performance', icon: Users },
+    { id: 'feedback', label: 'Teacher Feedback', icon: MessageSquare },
     { id: 'analytics', label: 'Analytics Lab', icon: BarChart3 },
+    { id: 'certificates', label: 'Certificates', icon: Award },
+  ];
+
+  // 2. Teacher: Examinations, Question Bank, Student Monitoring, Student Feedback, Live Proctoring, Certificates
+  const teacherTabs = [
+    { id: 'exams', label: 'Examinations', icon: BookOpen },
+    { id: 'questions', label: 'Question Bank', icon: FileText },
+    { id: 'student_monitoring', label: 'Student Monitoring', icon: Users },
+    { id: 'feedback', label: 'Student Feedback', icon: MessageSquare },
     { id: 'proctoring', label: 'Live Proctoring', icon: ShieldCheck },
     { id: 'certificates', label: 'Certificates', icon: Award },
-    { id: 'qti', label: 'QTI Exchange', icon: Layers },
-    { id: 'rubrics', label: 'Rubrics & Kappa', icon: Settings },
-    { id: 'accreditation', label: 'Accreditation OBE', icon: Award },
-    { id: 'biometrics', label: 'Biometrics Hub', icon: Fingerprint },
-    { id: 'plagiarism', label: 'Collusion Auditor', icon: FileSearch },
-    { id: 'scheduling', label: 'Timetable Grid', icon: Calendar },
-    { id: 'curriculum', label: 'Curriculum Blueprint', icon: BookOpen },
-    { id: 'reports', label: 'SIS Transcripts', icon: FileText },
-    { id: 'tenancy', label: 'Tenant Admin', icon: Building2 },
-    ...(userRole === 'admin' ? [{ id: 'audit', label: 'Audit Trail', icon: ShieldCheck }] : [])
   ];
 
+  // 3. Student: My Examinations, My Results, Teacher Feedback, My Certificates
   const studentTabs = [
     { id: 'exams', label: 'My Examinations', icon: BookOpen },
-    { id: 'adaptive_cat', label: 'Adaptive Testing', icon: BrainCircuit },
-    { id: 'student_review', label: 'Post-Exam Review', icon: FileText },
+    { id: 'results', label: 'My Results', icon: CheckCircle2 },
+    { id: 'feedback', label: 'Teacher Feedback', icon: MessageSquare },
     { id: 'certificates', label: 'My Certificates', icon: Award },
-    { id: 'verify', label: 'Verify Code', icon: FileSearch }
   ];
 
-  const tabs = userRole === 'student' ? studentTabs : adminTeacherTabs;
+  const tabs =
+    userRole === 'admin'
+      ? principalTabs
+      : userRole === 'teacher'
+      ? teacherTabs
+      : studentTabs;
 
   return (
-    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm px-4">
-      <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-none">
+    <nav className="bg-white dark:bg-zinc-900 border-b border-stone-200 dark:border-zinc-800 shadow-xs px-4">
+      <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-none max-w-7xl mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = currentTab === tab.id;
@@ -83,13 +74,17 @@ export const UnifiedSystemNavigation: React.FC<NavProps> = ({ currentTab, onSele
             <button
               key={tab.id}
               onClick={() => onSelectTab(tab.id as ExamHubNavigationTab)}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 shadow-xs border border-amber-200/60 dark:border-amber-900/40'
+                  : 'text-stone-600 dark:text-zinc-400 hover:text-stone-900 dark:hover:text-zinc-100 hover:bg-stone-50 dark:hover:bg-zinc-800'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`} />
+              <Icon
+                className={`w-4 h-4 ${
+                  isActive ? 'text-amber-600 dark:text-amber-400' : 'text-stone-400 dark:text-zinc-500'
+                }`}
+              />
               <span>{tab.label}</span>
             </button>
           );

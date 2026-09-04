@@ -284,6 +284,26 @@ DDL_STATEMENTS = [
     """,
     """
     CREATE INDEX IF NOT EXISTS idx_proctoring_attempt ON proctoring_logs(attempt_id);
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS student_feedbacks (
+        id TEXT PRIMARY KEY,
+        exam_id TEXT NOT NULL,
+        student_id TEXT NOT NULL,
+        teacher_id TEXT NOT NULL,
+        attempt_id TEXT,
+        feedback_text TEXT NOT NULL,
+        rating INTEGER DEFAULT 5,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
+    );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_feedbacks_student ON student_feedbacks(student_id);
+    CREATE INDEX IF NOT EXISTS idx_feedbacks_exam ON student_feedbacks(exam_id);
     """
 ]
 

@@ -119,6 +119,25 @@ class CertificateRepository:
         return [dict(r) for r in cursor.fetchall()]
 
     @staticmethod
+    def list_all_certificates() -> List[Dict[str, Any]]:
+        CertificateRepository.ensure_table()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT c.*, u.full_name as student_name, st.student_id_code as roll_number,
+                   e.name as exam_name, s.code as subject_code, s.name as subject_name,
+                   r.percentage, r.grade
+            FROM certificates c
+            JOIN students st ON c.student_id = st.id
+            JOIN users u ON st.user_id = u.id
+            JOIN exams e ON c.exam_id = e.id
+            JOIN subjects s ON e.subject_id = s.id
+            JOIN results r ON c.attempt_id = r.attempt_id
+            ORDER BY c.issue_date DESC
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+
+    @staticmethod
     def revoke_certificate(code: str, reason: str) -> bool:
         CertificateRepository.ensure_table()
         conn = get_db_connection()

@@ -18,21 +18,13 @@ import { QuestionList } from './components/questions/QuestionList';
 import { SubjectListModal } from './components/subjects/SubjectListModal';
 import { AnalyticsDashboard } from './components/analytics/AnalyticsDashboard';
 import { LiveProctoringDashboard } from './components/proctoring/LiveProctoringDashboard';
-import { AuditLogViewer } from './components/audit/AuditLogViewer';
 import { StudentCertificatesTab } from './components/certificates/StudentCertificatesTab';
-import { CertificateVerificationPortal } from './components/certificates/CertificateVerificationPortal';
 import { UnifiedSystemNavigation, ExamHubNavigationTab } from './components/navigation/UnifiedSystemNavigation';
-import { AdaptiveExamRunner } from './components/adaptive/AdaptiveExamRunner';
-import { QTIManager } from './components/qti/QTIManager';
-import { RubricManager } from './components/rubrics/RubricManager';
-import { AccreditationDashboard } from './components/accreditation/AccreditationDashboard';
-import { BiometricVerificationConsole } from './components/biometrics/BiometricVerificationConsole';
-import { PlagiarismReviewView } from './components/plagiarism/PlagiarismReviewView';
-import { InstitutionalExamCalendar } from './components/scheduling/InstitutionalExamCalendar';
-import { CurriculumBlueprintView } from './components/curriculum/CurriculumBlueprintView';
-import { InstitutionalReportsView } from './components/reporting/InstitutionalReportsView';
-import { TenantAdminPortal } from './components/tenancy/TenantAdminPortal';
-import { ExamReviewPortal } from './components/student/ExamReviewPortal';
+import { PrincipalDashboard } from './components/principal/PrincipalDashboard';
+import { TeacherStudentMonitoring } from './components/teacher/TeacherStudentMonitoring';
+import { TeacherFeedbackView } from './components/teacher/TeacherFeedbackView';
+import { StudentResultsList } from './components/student/StudentResultsList';
+import { StudentFeedbackView } from './components/student/StudentFeedbackView';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { Exam, ExamResult } from './types/exam';
 import { examService } from './services/examService';
@@ -59,6 +51,13 @@ function ExamHubContent() {
 
   // Navigation tabs for Teacher/Admin/Student
   const [activeTab, setActiveTab] = useState<ExamHubNavigationTab>('exams');
+
+  // Ensure role has an appropriate initial tab
+  React.useEffect(() => {
+    if (user?.role === 'admin' && activeTab === 'exams') {
+      setActiveTab('principal_dashboard');
+    }
+  }, [user?.role]);
 
   // Modal states for Teacher/Admin
   const [showExamCreateModal, setShowExamCreateModal] = useState(false);
@@ -138,7 +137,11 @@ function ExamHubContent() {
       setActiveScorecard(null);
       setActiveAttemptExamId(null);
       setSelectedExamForResults(null);
-      setActiveTab('exams');
+      if (username === 'principal_sharma' || username === 'admin') {
+        setActiveTab('principal_dashboard');
+      } else {
+        setActiveTab('exams');
+      }
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Switch failed', 'error');
     } finally {
@@ -147,7 +150,9 @@ function ExamHubContent() {
   };
 
   const isStudent = user.role === 'student';
-  const isTeacherOrAdmin = user.role === 'teacher' || user.role === 'admin';
+  const isTeacher = user.role === 'teacher';
+  const isPrincipal = user.role === 'admin';
+  const isStaff = isTeacher || isPrincipal;
 
   return (
     <div id="examhub-shell" className="min-h-screen bg-stone-100 dark:bg-zinc-950 flex flex-col font-sans">
@@ -172,7 +177,7 @@ function ExamHubContent() {
               </div>
 
               {/* Quick Subjects Action for Staff */}
-              {isTeacherOrAdmin && (
+              {isStaff && (
                 <div className="hidden md:flex items-center gap-1 border-l border-stone-200 dark:border-zinc-800 pl-4">
                   <button
                     id="nav-tab-subjects"
@@ -194,33 +199,33 @@ function ExamHubContent() {
                   <ArrowRightLeft className="w-3 h-3" /> Demo:
                 </span>
                 <button
-                  onClick={() => handleDemoSwitch('teacher_smith')}
-                  disabled={switchingRole || user.username === 'teacher_smith'}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                    user.username === 'teacher_smith'
-                      ? 'bg-amber-600 text-white'
+                  onClick={() => handleDemoSwitch('principal_sharma')}
+                  disabled={switchingRole || user.username === 'principal_sharma' || (isPrincipal && user.username === 'admin')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                    isPrincipal
+                      ? 'bg-purple-600 text-white shadow-xs'
                       : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
                   }`}
                 >
-                  Teacher (Smith)
+                  Principal (Dr. Sharma)
                 </button>
                 <button
-                  onClick={() => handleDemoSwitch('student_carol')}
-                  disabled={switchingRole || user.username === 'student_carol'}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                    user.username === 'student_carol'
-                      ? 'bg-blue-600 text-white'
+                  onClick={() => handleDemoSwitch('teacher_smith')}
+                  disabled={switchingRole || user.username === 'teacher_smith'}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                    user.username === 'teacher_smith'
+                      ? 'bg-amber-600 text-white shadow-xs'
                       : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
                   }`}
                 >
-                  Student (Carol)
+                  Teacher (Prof. Smith)
                 </button>
                 <button
                   onClick={() => handleDemoSwitch('student_alice')}
                   disabled={switchingRole || user.username === 'student_alice'}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
                     user.username === 'student_alice'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-blue-600 text-white shadow-xs'
                       : 'text-stone-600 hover:bg-stone-200/60 dark:text-stone-300'
                   }`}
                 >
@@ -239,14 +244,14 @@ function ExamHubContent() {
                   </p>
                   <span
                     className={`inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded ${
-                      user.role === 'admin'
+                      isPrincipal
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300'
-                        : user.role === 'teacher'
+                        : isTeacher
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
                         : 'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300'
                     }`}
                   >
-                    {user.role}
+                    {isPrincipal ? 'Principal' : isTeacher ? 'Teacher' : 'Student'}
                   </span>
                 </div>
               </div>
@@ -275,8 +280,8 @@ function ExamHubContent() {
 
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {isStudent ? (
-          /* Student Assessment Portal & Credential Tabs */
+        {/* 1. STUDENT DASHBOARD */}
+        {isStudent && (
           <div>
             {activeTab === 'exams' && (
               <StudentExamPortal
@@ -284,13 +289,61 @@ function ExamHubContent() {
                 onViewResult={(attemptId) => handleStudentViewResult(attemptId)}
               />
             )}
-            {activeTab === 'adaptive_cat' && <AdaptiveExamRunner />}
-            {activeTab === 'student_review' && <ExamReviewPortal />}
-            {activeTab === 'certificates' && <StudentCertificatesTab />}
-            {activeTab === 'verify' && <CertificateVerificationPortal />}
+            {activeTab === 'results' && (
+              <StudentResultsList
+                onViewScorecard={(result) => setActiveScorecard(result)}
+              />
+            )}
+            {activeTab === 'feedback' && (
+              <StudentFeedbackView />
+            )}
+            {activeTab === 'certificates' && (
+              <StudentCertificatesTab />
+            )}
           </div>
-        ) : (
-          /* Teacher / Admin Workspace */
+        )}
+
+        {/* 2. PRINCIPAL DASHBOARD */}
+        {isPrincipal && (
+          <div>
+            {activeTab === 'principal_dashboard' && (
+              <PrincipalDashboard
+                onNavigateToExams={() => setActiveTab('exams')}
+                onNavigateToMonitoring={() => setActiveTab('student_monitoring')}
+                onNavigateToCertificates={() => setActiveTab('certificates')}
+              />
+            )}
+            {activeTab === 'exams' && (
+              <ExamList
+                onCreateClick={() => {
+                  setSelectedExamForEdit(null);
+                  setShowExamCreateModal(true);
+                }}
+                onAutoGenerateClick={() => setShowExamAutoModal(true)}
+                onViewResults={(exam) => setSelectedExamForResults(exam)}
+                onEditExam={(exam) => {
+                  setSelectedExamForEdit(exam);
+                  setShowExamCreateModal(true);
+                }}
+              />
+            )}
+            {activeTab === 'student_monitoring' && (
+              <TeacherStudentMonitoring />
+            )}
+            {activeTab === 'feedback' && (
+              <TeacherFeedbackView />
+            )}
+            {activeTab === 'analytics' && (
+              <AnalyticsDashboard />
+            )}
+            {activeTab === 'certificates' && (
+              <StudentCertificatesTab />
+            )}
+          </div>
+        )}
+
+        {/* 3. TEACHER DASHBOARD */}
+        {isTeacher && (
           <div>
             {activeTab === 'exams' && (
               <ExamList
@@ -306,42 +359,21 @@ function ExamHubContent() {
                 }}
               />
             )}
-
             {activeTab === 'questions' && (
-              <QuestionList userRole={user.role as 'admin' | 'teacher'} />
+              <QuestionList userRole="teacher" />
             )}
-
-            {activeTab === 'adaptive_cat' && <AdaptiveExamRunner />}
-
-            {activeTab === 'analytics' && <AnalyticsDashboard />}
-
-            {activeTab === 'proctoring' && <LiveProctoringDashboard />}
-
-            {activeTab === 'certificates' && <StudentCertificatesTab />}
-
-            {activeTab === 'qti' && <QTIManager />}
-
-            {activeTab === 'rubrics' && <RubricManager />}
-
-            {activeTab === 'accreditation' && <AccreditationDashboard />}
-
-            {activeTab === 'biometrics' && <BiometricVerificationConsole />}
-
-            {activeTab === 'plagiarism' && <PlagiarismReviewView />}
-
-            {activeTab === 'scheduling' && <InstitutionalExamCalendar />}
-
-            {activeTab === 'curriculum' && <CurriculumBlueprintView />}
-
-            {activeTab === 'reports' && <InstitutionalReportsView />}
-
-            {activeTab === 'tenancy' && <TenantAdminPortal />}
-
-            {activeTab === 'audit' && <AuditLogViewer />}
-
-            {activeTab === 'student_review' && <ExamReviewPortal />}
-
-            {activeTab === 'verify' && <CertificateVerificationPortal />}
+            {activeTab === 'student_monitoring' && (
+              <TeacherStudentMonitoring />
+            )}
+            {activeTab === 'feedback' && (
+              <TeacherFeedbackView />
+            )}
+            {activeTab === 'proctoring' && (
+              <LiveProctoringDashboard />
+            )}
+            {activeTab === 'certificates' && (
+              <StudentCertificatesTab />
+            )}
           </div>
         )}
       </main>

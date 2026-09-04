@@ -42,12 +42,18 @@ def seed_database(force_reseed: bool = False):
     default_pass = hash_password("password123")
 
     with transaction():
-        # 1. ADMIN USER
+        # 1. PRINCIPAL & ADMIN USERS
         admin_id = str(uuid.uuid4())
+        principal_id = str(uuid.uuid4())
         cursor.execute(
             """INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?);""",
             (admin_id, "admin", "admin@examhub.edu", default_pass, "System Administrator", UserRole.ADMIN.value, now, now)
+        )
+        cursor.execute(
+            """INSERT INTO users (id, username, email, password_hash, full_name, role, is_active, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?);""",
+            (principal_id, "principal_sharma", "principal@examhub.edu", default_pass, "Dr. Ramesh Sharma (Principal)", UserRole.ADMIN.value, now, now)
         )
 
         # 2. TEACHERS
@@ -72,13 +78,15 @@ def seed_database(force_reseed: bool = False):
             )
             teacher_records.append({"user_id": uid, "teacher_id": tid, "name": fname, "username": uname})
 
-        # 3. STUDENTS
+        # 3. SYNTHETIC STUDENTS COHORT
         students_data = [
             ("student_alice", "alice@examhub.edu", "Alice Walker", "STU001", "Senior", "Computer Science", "+1-555-0101"),
             ("student_bob", "bob@examhub.edu", "Bob Miller", "STU002", "Junior", "Computer Science", "+1-555-0102"),
-            ("student_carol", "carol@examhub.edu", "Carol Martinez", "STU003", "Senior", "Data Science", "+1-555-0103"),
             ("student_david", "david@examhub.edu", "David Kim", "STU004", "Sophomore", "Software Engineering", "+1-555-0104"),
             ("student_eva", "eva@examhub.edu", "Eva Green", "STU005", "Junior", "Computer Science", "+1-555-0105"),
+            ("student_frank", "frank@examhub.edu", "Frank Wright", "STU006", "Freshman", "Computer Science", "+1-555-0106"),
+            ("student_grace", "grace@examhub.edu", "Grace Hopper", "STU007", "Senior", "Computer Science", "+1-555-0107"),
+            ("student_henry", "henry@examhub.edu", "Henry Ford", "STU008", "Sophomore", "Software Engineering", "+1-555-0108"),
         ]
         student_records = []
         for uname, email, fname, scode, grade, dept, phone in students_data:
@@ -406,13 +414,27 @@ def seed_database(force_reseed: bool = False):
                 (str(uuid.uuid4()), exam3_id, s["student_id"], now)
             )
 
-        # 7. SEED COMPLETED ATTEMPTS & RESULTS FOR STUDENT 1 (Alice) & STUDENT 2 (Bob) on Exam 2
-        for idx, s in enumerate(student_records[:2]):
+        # 7. SEED COMPLETED ATTEMPTS, RESULTS, CERTIFICATES & FEEDBACK FOR STUDENTS
+        from backend.app.certificates.repository import CertificateRepository
+        CertificateRepository.ensure_table()
+
+        # Student performances across Exam 2 (Data Structures)
+        perf_data = [
+            # (student_index, correct_count, score, percentage, grade, pass_fail, rank, feedback_text, rating, has_cert, cert_code)
+            (0, 4, 7.0, 87.5, "A", "PASS", 2, "Outstanding work, Alice! Exceptional grasp of algorithm optimization and space-time complexity analysis.", 5, True, "CERT-2026-DS-001"),
+            (1, 3, 5.0, 62.5, "C", "PASS", 4, "Good demonstration of core data structure concepts. Review recursion edge cases and balance factors.", 4, False, None),
+            (2, 3, 4.5, 56.2, "D", "PASS", 5, "Satisfactory completion. Focus on mastering pointer arithmetic and tree rebalancing operations.", 3, False, None),
+            (3, 2, 3.5, 43.8, "D", "PASS", 6, "Passed the baseline threshold. Extra practice with hash tables and linked lists recommended.", 3, False, None),
+            (4, 1, 2.0, 25.0, "F", "FAIL", 7, "Academic intervention needed. Fundamental concepts require guided practice. Please attend office hours.", 2, False, None),
+            (5, 4, 8.0, 100.0, "A+", "PASS", 1, "Flawless score! Exemplary mastery of data structures, complexity bounds, and algorithm implementation.", 5, True, "CERT-2026-DS-002"),
+            (6, 3, 5.5, 68.8, "C", "PASS", 3, "Solid effort. Good understanding of stack and queue implementations. Keep developing tree traversal skills.", 4, False, None),
+        ]
+
+        for s_idx, cor, score, pct, grd, res, rnk, fb_text, fb_rating, has_cert, ccode in perf_data:
+            if s_idx >= len(student_records):
+                continue
+            s = student_records[s_idx]
             att_id = str(uuid.uuid4())
-            score = 7.0 if idx == 0 else 5.0
-            pct = 87.5 if idx == 0 else 62.5
-            grd = "A" if idx == 0 else "C"
-            res = "PASS"
             
             cursor.execute(
                 """INSERT INTO exam_attempts (id, exam_id, student_id, start_time, end_time, time_remaining_seconds,
@@ -424,7 +446,7 @@ def seed_database(force_reseed: bool = False):
 
             # Insert answers for questions
             for q_idx, q in enumerate(ds_questions):
-                sel = q["ans"] if (idx == 0 or q_idx < 3) else "A"
+                sel = q["ans"] if q_idx < cor else "B"
                 is_cor = 1 if sel == q["ans"] else 0
                 mk = q["marks"] if is_cor else 0.0
                 cursor.execute(
@@ -434,20 +456,41 @@ def seed_database(force_reseed: bool = False):
                 )
 
             # Insert Result record
+            res_id = str(uuid.uuid4())
             cursor.execute(
                 """INSERT INTO results (id, attempt_id, exam_id, student_id, total_questions, correct_count, wrong_count,
                                        unanswered_count, total_marks, obtained_marks, percentage, grade, pass_fail, rank, generated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 8.0, ?, ?, ?, ?, ?, ?);""",
-                (str(uuid.uuid4()), att_id, exam2_id, s["student_id"], len(ds_questions),
-                 4 if idx == 0 else 3, 1 if idx == 0 else 2, score, pct, grd, res, idx + 1, yesterday)
+                (res_id, att_id, exam2_id, s["student_id"], len(ds_questions),
+                 cor, len(ds_questions) - cor, score, pct, grd, res, rnk, yesterday)
             )
+
+            # Insert Teacher Feedback
+            fb_id = str(uuid.uuid4())
+            cursor.execute(
+                """INSERT INTO student_feedbacks (id, exam_id, student_id, teacher_id, attempt_id, feedback_text, rating, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (fb_id, exam2_id, s["student_id"], teacher_records[0]["teacher_id"], att_id, fb_text, fb_rating, yesterday, yesterday)
+            )
+
+            # Insert Certificate if passed with honors
+            if has_cert and ccode:
+                cert_id = str(uuid.uuid4())
+                cursor.execute(
+                    """INSERT INTO certificates (id, certificate_code, attempt_id, exam_id, student_id, title, issue_date, expiry_date, verification_hash, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?);""",
+                    (cert_id, ccode, att_id, exam2_id, s["student_id"],
+                     f"Certificate of Excellence in Data Structures & Algorithms",
+                     yesterday, next_week, f"SHA256-{ccode}-{s['student_id'][:8]}", yesterday)
+                )
 
         # 8. NOTIFICATIONS
         notifs = [
-            (student_records[0]["user_id"], "New Exam Scheduled", "DBMS & SQL Proficiency Examination has been scheduled for tomorrow.", "exam_scheduled", yesterday),
-            (student_records[0]["user_id"], "Result Published", "Your result for Data Structures Fundamentals Quiz is now available: Grade A (87.5%).", "result_available", yesterday),
+            (student_records[0]["user_id"], "Certificate Awarded!", "Congratulations! You have been awarded Certificate CERT-2026-DS-001 for Data Structures.", "certificate_awarded", yesterday),
+            (student_records[0]["user_id"], "Teacher Feedback Received", "Prof. Robert Smith left feedback on your Data Structures quiz submission.", "feedback_received", yesterday),
             (student_records[1]["user_id"], "Result Published", "Your result for Data Structures Fundamentals Quiz is now available: Grade C (62.5%).", "result_available", yesterday),
-            (admin_id, "System Initialized", "ExamHub examination platform initialized with default synthetic curriculum fixtures.", "system_alert", now),
+            (principal_id, "Academic Executive Report", "ExamHub institutional assessment summary ready for review by the Principal.", "executive_report", now),
+            (admin_id, "System Initialized", "ExamHub platform initialized with full synthetic curriculum fixtures.", "system_alert", now),
         ]
         for uid, title, msg, ntype, ts in notifs:
             cursor.execute(
@@ -457,10 +500,11 @@ def seed_database(force_reseed: bool = False):
             )
 
     logger.info("Database seeding completed successfully!")
+    logger.info("Created Principal: principal_sharma / password123")
     logger.info(f"Created Admin: admin / password123")
     logger.info(f"Created {len(teacher_records)} Teachers (e.g. teacher_smith / password123)")
     logger.info(f"Created {len(student_records)} Students (e.g. student_alice / password123)")
-    logger.info(f"Created {len(subject_records)} Subjects, {len(question_records)} Questions, 3 Exams, Attempts & Results.")
+    logger.info(f"Created {len(subject_records)} Subjects, {len(question_records)} Questions, Exams, Attempts, Feedback & Certificates.")
 
 if __name__ == "__main__":
     from backend.app.database.schema import init_db
